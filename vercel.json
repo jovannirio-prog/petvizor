@@ -3,5 +3,11 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "installCommand": "npm install",
-  "devCommand": "npm run dev"
+  "devCommand": "npm run dev",
+  "regions": ["fra1"],
+  "functions": {
+    "src/app/api/chat/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }

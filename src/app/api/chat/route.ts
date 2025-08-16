@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { createClient } from '@supabase/supabase-js'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+// Создаем клиент Supabase с сервисным ключом для серверных операций
+const supabase = supabaseUrl && supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null
+
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json()
+    const { message, userId } = await request.json()
 
     if (!message) {
       return NextResponse.json(
@@ -45,6 +54,26 @@ export async function POST(request: NextRequest) {
         { error: 'Не удалось получить ответ от AI' },
         { status: 500 }
       )
+    }
+
+    // Сохраняем сообщение в базу данных, если Supabase настроен
+    if (supabase && userId) {
+      try {
+        const { error: dbError } = await supabase
+          .from('chat_messages')
+          .insert({
+            user_id: userId,
+            message: message,
+            response: response,
+            created_at: new Date().toISOString()
+          })
+
+        if (dbError) {
+          console.warn('Failed to save message to database:', dbError)
+        }
+      } catch (dbError) {
+        console.warn('Database save error:', dbError)
+      }
     }
 
     return NextResponse.json({
