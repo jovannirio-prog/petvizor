@@ -15,9 +15,6 @@ export default function Navigation({ isAuthenticated = false, onSignOut }: Navig
   const menuItems = [
     { name: 'QR-код', href: '/qr-code', active: true },
     { name: 'ИИ-консультация', href: '/ai-consultation', active: true },
-    { name: 'Подбор корма', href: '/food-selection', active: false },
-    { name: 'ИИ-энциклопедия пород', href: '/breed-encyclopedia', active: false },
-    { name: 'Здоровье питомца', href: '/pet-health', active: false },
     { name: 'О проекте', href: '/about', active: true },
   ]
 
@@ -46,14 +43,8 @@ export default function Navigation({ isAuthenticated = false, onSignOut }: Navig
                     ? 'text-gray-900 hover:text-primary-600'
                     : 'text-gray-400 cursor-not-allowed'
                 }`}
-                onClick={!item.active ? (e) => e.preventDefault() : undefined}
-              >
-                {item.name}
-                {!item.active && (
-                  <span className="ml-1 text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
-                    Скоро
-                  </span>
-                )}
+                               >
+                 {item.name}
               </Link>
             ))}
           </div>
@@ -109,16 +100,8 @@ export default function Navigation({ isAuthenticated = false, onSignOut }: Navig
                       ? 'text-gray-900 hover:bg-gray-100'
                       : 'text-gray-400 cursor-not-allowed'
                   }`}
-                  onClick={!item.active ? (e) => e.preventDefault() : undefined}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{item.name}</span>
-                    {!item.active && (
-                      <span className="text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
-                        Скоро
-                      </span>
-                    )}
-                  </div>
+                                   >
+                   <span>{item.name}</span>
                 </Link>
               ))}
             </div>

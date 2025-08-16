@@ -225,30 +225,6 @@ function LandingPage() {
       icon: MessageSquare,
       href: '/ai-consultation',
       active: true
-    },
-    {
-      title: 'Подбор корма',
-      description: 'Найдите идеальный корм для вашего питомца на основе его породы, возраста и здоровья',
-      icon: Utensils,
-      href: '/food-selection',
-      active: false,
-      comingSoon: true
-    },
-    {
-      title: 'ИИ-энциклопедия пород',
-      description: 'Узнайте все о различных породах собак и кошек с помощью ИИ',
-      icon: BookOpen,
-      href: '/breed-encyclopedia',
-      active: false,
-      comingSoon: true
-    },
-    {
-      title: 'Здоровье питомца',
-      description: 'Отслеживайте здоровье вашего питомца и получайте рекомендации по профилактике',
-      icon: Stethoscope,
-      href: '/pet-health',
-      active: false,
-      comingSoon: true
     }
   ]
 
@@ -268,8 +244,8 @@ function LandingPage() {
             PetVizor
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Умный AI-помощник для заботы о ваших домашних животных. Получите персональные советы, 
-            создайте QR-код для питомца и многое другое.
+            Умный AI-помощник для заботы о ваших домашних животных. Получите персональные советы 
+            и создайте QR-код для вашего питомца.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -296,11 +272,11 @@ function LandingPage() {
               Наши сервисы
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Выберите нужный вам сервис и получите профессиональную помощь в уходе за питомцем
+              Доступные сервисы для помощи в уходе за вашим питомцем
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {services.map((service) => (
               <ServiceCard
                 key={service.title}
@@ -309,7 +285,6 @@ function LandingPage() {
                 icon={service.icon}
                 href={service.href}
                 active={service.active}
-                comingSoon={service.comingSoon}
               />
             ))}
           </div>
