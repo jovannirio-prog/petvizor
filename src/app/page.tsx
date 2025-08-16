@@ -237,7 +237,18 @@ function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex justify-center mb-6">
             <div className="p-4 bg-primary-500 rounded-full">
-              <PawPrint className="h-12 w-12 text-white" />
+              {/* Замените на ваш логотип */}
+              <img 
+                src="/images/logo.png" 
+                alt="PetVizor Logo" 
+                className="h-12 w-12 object-contain"
+                onError={(e) => {
+                  // Fallback на иконку, если изображение не загрузилось
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <PawPrint className="h-12 w-12 text-white hidden" />
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">

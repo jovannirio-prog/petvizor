@@ -25,10 +25,21 @@ export default function Navigation({ isAuthenticated = false, onSignOut }: Navig
           {/* Logo */}
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-primary-500 rounded-lg">
-              <PawPrint className="h-6 w-6 text-white" />
+              {/* Замените на ваш логотип */}
+              <img 
+                src="/images/logo.png" 
+                alt="PetVizor Logo" 
+                className="h-6 w-6 object-contain"
+                onError={(e) => {
+                  // Fallback на иконку, если изображение не загрузилось
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <PawPrint className="h-6 w-6 text-white hidden" />
             </div>
             <Link href="/" className="text-xl font-bold text-gray-900">
-              PetVizor
+              Ваше Название
             </Link>
           </div>
 
