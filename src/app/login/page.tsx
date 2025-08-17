@@ -17,18 +17,72 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔐 Login: Начало процесса входа')
     setLoading(true)
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      console.log('📧 Login: Отправляем запрос на /api/login')
+      // Используем новый API endpoint для входа
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password
+        })
       })
-      if (error) throw error
-      router.push('/')
+
+      console.log('📡 Login: Получен ответ от сервера, статус:', response.status)
+      const result = await response.json()
+      console.log('📄 Login: Результат:', result)
+      console.log('📄 Login: result.data:', result.data)
+      console.log('📄 Login: result.data.session:', result.data?.session)
+      console.log('📄 Login: result.data.session.access_token:', result.data?.session?.access_token)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Ошибка входа в систему')
+      }
+
+      console.log('✅ Login: Вход успешен, сохраняем токены')
+      // Сохраняем токен в localStorage для последующего использования
+      let tokensSaved = false
+      
+      if (result.data?.session?.access_token) {
+        localStorage.setItem('supabase_access_token', result.data.session.access_token)
+        console.log('💾 Login: Access token сохранен, длина:', result.data.session.access_token.length)
+        tokensSaved = true
+      } else {
+        console.log('❌ Login: Access token не найден в ответе')
+      }
+      
+      if (result.data?.session?.refresh_token) {
+        localStorage.setItem('supabase_refresh_token', result.data.session.refresh_token)
+        console.log('💾 Login: Refresh token сохранен, длина:', result.data.session.refresh_token.length)
+        tokensSaved = true
+      } else {
+        console.log('❌ Login: Refresh token не найден в ответе')
+      }
+
+      // Проверяем, что токены действительно сохранились
+      const savedAccessToken = localStorage.getItem('supabase_access_token')
+      const savedRefreshToken = localStorage.getItem('supabase_refresh_token')
+      console.log('🔍 Login: Проверка сохранения - Access token:', !!savedAccessToken, 'Refresh token:', !!savedRefreshToken)
+
+      if (tokensSaved) {
+        console.log('🔄 Login: Токены сохранены, перенаправляем в личный кабинет')
+        // Принудительно обновляем состояние пользователя
+        window.location.href = '/dashboard'
+      } else {
+        console.log('❌ Login: Токены не найдены в ответе')
+        setError('Ошибка: токены не получены от сервера')
+      }
+      
     } catch (error: any) {
-      setError(error.message)
+      console.error('❌ Login: Ошибка входа:', error)
+      setError(error.message || 'Произошла неизвестная ошибка при входе')
     } finally {
       setLoading(false)
     }

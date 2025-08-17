@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zuuupcwjynjeqtjzdimt.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1dXVwY3dqeW5qZXF0anpkaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMjk3NDcsImV4cCI6MjA3MDkwNTc0N30.fUKZnqs_xlsAUlle2UmAaalupJ0rMIyoKlIhNpdTFao'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -14,6 +14,7 @@ export interface Database {
           id: string
           email: string
           full_name: string | null
+          phone: string | null
           avatar_url: string | null
           created_at: string
           updated_at: string
@@ -22,6 +23,7 @@ export interface Database {
           id: string
           email: string
           full_name?: string | null
+          phone?: string | null
           avatar_url?: string | null
           created_at?: string
           updated_at?: string
@@ -30,6 +32,7 @@ export interface Database {
           id?: string
           email?: string
           full_name?: string | null
+          phone?: string | null
           avatar_url?: string | null
           created_at?: string
           updated_at?: string
@@ -44,6 +47,8 @@ export interface Database {
           breed: string | null
           birth_date: string | null
           weight: number | null
+          photo_url: string | null
+          lost_comment: string | null
           created_at: string
           updated_at: string
         }
@@ -55,6 +60,8 @@ export interface Database {
           breed?: string | null
           birth_date?: string | null
           weight?: number | null
+          photo_url?: string | null
+          lost_comment?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -66,6 +73,8 @@ export interface Database {
           breed?: string | null
           birth_date?: string | null
           weight?: number | null
+          photo_url?: string | null
+          lost_comment?: string | null
           created_at?: string
           updated_at?: string
         }

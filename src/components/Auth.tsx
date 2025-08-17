@@ -22,6 +22,11 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     setError(null)
 
     try {
+      // Проверяем, настроен ли Supabase
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://example.supabase.co') {
+        throw new Error('Supabase не настроен. Пожалуйста, настройте переменные окружения для локальной разработки.')
+      }
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
@@ -38,7 +43,14 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         onAuthSuccess()
       }
     } catch (error: any) {
-      setError(error.message)
+      console.error('Auth error:', error)
+      if (error.message.includes('Supabase не настроен')) {
+        setError('Для работы с регистрацией необходимо настроить Supabase. См. файл ENV_SETUP_FINAL.md')
+      } else if (error.message.includes('fetch')) {
+        setError('Ошибка сети. Проверьте подключение к интернету и настройки Supabase.')
+      } else {
+        setError(error.message || 'Произошла неизвестная ошибка')
+      }
     } finally {
       setLoading(false)
     }

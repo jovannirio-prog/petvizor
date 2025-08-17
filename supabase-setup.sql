@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL,
   full_name TEXT,
+  phone TEXT, -- Добавляем номер телефона
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -20,6 +21,8 @@ CREATE TABLE IF NOT EXISTS pets (
   breed TEXT,
   birth_date DATE,
   weight DECIMAL(5,2),
+  photo_url TEXT, -- Добавляем URL фото питомца
+  lost_comment TEXT, -- Добавляем комментарий для случая потери
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -67,7 +70,10 @@ CREATE POLICY "Users can delete own pets" ON pets FOR DELETE USING (auth.uid() =
 CREATE POLICY "Users can view own messages" ON chat_messages FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own messages" ON chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Удаление существующей функции (если есть)
+-- Удаление существующего триггера (если есть) - ПЕРЕД удалением функции
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Удаление существующей функции (если есть) - ПОСЛЕ удаления триггера
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
 -- Создание функции для автоматического создания профиля при регистрации
@@ -79,9 +85,6 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Удаление существующего триггера (если есть)
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 -- Создание триггера для автоматического создания профиля
 CREATE TRIGGER on_auth_user_created
