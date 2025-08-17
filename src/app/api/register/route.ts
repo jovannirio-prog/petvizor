@@ -102,8 +102,33 @@ export async function POST(request: NextRequest) {
     console.log('🔍 API Register: access_token length:', data.session?.access_token?.length)
     console.log('🔍 API Register: refresh_token length:', data.session?.refresh_token?.length)
     
-    // Профиль будет создан автоматически триггером
-    console.log('✅ API Register: Профиль будет создан автоматически триггером')
+    // Создаем профиль пользователя в таблице profiles
+    try {
+      console.log('🔧 API Register: Создаем профиль пользователя')
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (profileError) {
+        console.error('❌ API Register: Ошибка создания профиля:', profileError)
+        console.error('❌ API Register: Код ошибки профиля:', profileError.code)
+        console.error('❌ API Register: Детали ошибки профиля:', profileError.details)
+        // Не возвращаем ошибку, так как пользователь уже создан в Auth
+        console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
+      } else {
+        console.log('✅ API Register: Профиль пользователя создан успешно')
+      }
+    } catch (profileError) {
+      console.error('❌ API Register: Ошибка при создании профиля:', profileError)
+      // Не возвращаем ошибку, так как пользователь уже создан в Auth
+      console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
+    }
     
     return NextResponse.json({
       success: true,
