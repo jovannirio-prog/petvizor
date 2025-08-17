@@ -20,6 +20,7 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔐 Register: Начало процесса регистрации')
     setLoading(true)
     setError('')
     setSuccess(false)
@@ -37,6 +38,9 @@ export default function RegisterPage() {
     }
 
     try {
+      console.log('📧 Register: Отправляем запрос на /api/register')
+      console.log('🌐 Register: Текущий URL:', window.location.origin)
+      
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: {
@@ -47,14 +51,39 @@ export default function RegisterPage() {
           password,
           full_name: fullName
         })
+      }).catch((fetchError) => {
+        console.error('❌ Register: Ошибка fetch:', fetchError)
+        console.error('❌ Register: Тип ошибки:', fetchError.name)
+        console.error('❌ Register: Сообщение ошибки:', fetchError.message)
+        
+        // Проверяем тип ошибки
+        if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+          throw new Error('Ошибка сети. Проверьте подключение к интернету и настройки Supabase.')
+        } else if (fetchError.name === 'AbortError') {
+          throw new Error('Запрос был прерван. Попробуйте еще раз.')
+        } else {
+          throw new Error(`Ошибка сети: ${fetchError.message}`)
+        }
       })
 
+      console.log('📡 Register: Получен ответ от сервера, статус:', response.status)
+      console.log('📡 Register: Заголовки ответа:', Object.fromEntries(response.headers.entries()))
+      
+      if (!response.ok) {
+        console.error('❌ Register: HTTP ошибка:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.error('❌ Register: Текст ошибки:', errorText)
+        throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`)
+      }
+
       const result = await response.json()
+      console.log('📄 Register: Результат:', result)
 
       if (!result.success) {
         throw new Error(result.error || 'Ошибка регистрации')
       }
 
+      console.log('✅ Register: Регистрация успешна')
       setSuccess(true)
       setError(null)
       
@@ -64,8 +93,19 @@ export default function RegisterPage() {
       }, 2000)
       
     } catch (error: any) {
-      console.error('Registration error:', error)
-      setError(error.message || 'Произошла неизвестная ошибка при регистрации')
+      console.error('❌ Register: Ошибка регистрации:', error)
+      console.error('❌ Register: Стек ошибки:', error.stack)
+      
+      // Более детальная обработка ошибок
+      if (error.message.includes('fetch')) {
+        setError('Ошибка сети. Проверьте подключение к интернету и настройки Supabase.')
+      } else if (error.message.includes('CORS')) {
+        setError('Ошибка CORS. Проблема с настройками сервера.')
+      } else if (error.message.includes('timeout')) {
+        setError('Превышено время ожидания ответа от сервера.')
+      } else {
+        setError(error.message || 'Произошла неизвестная ошибка при регистрации')
+      }
       setSuccess(false)
     } finally {
       setLoading(false)
