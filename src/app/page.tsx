@@ -1,3 +1,5 @@
+'use client'
+
 import NavigationWrapper from '@/components/NavigationWrapper'
 import ClearAuthButton from '@/components/ClearAuthButton'
 import { QrCode, Brain, Search, BookOpen, Package, Heart } from 'lucide-react'
