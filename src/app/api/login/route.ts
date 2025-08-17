@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
       } else if (error.message.includes('Too many requests')) {
         errorMessage = 'Слишком много попыток входа. Попробуйте позже.'
         statusCode = 429
-      } else if (error.message.includes('fetch')) {
-        errorMessage = 'Ошибка сети. Проверьте подключение к интернету.'
+      } else if (error.message.includes('fetch') || error.message.includes('fetch failed') || error.name === 'AuthRetryableFetchError') {
+        errorMessage = 'Ошибка подключения к серверу аутентификации. Проверьте настройки Supabase.'
         statusCode = 500
       }
       

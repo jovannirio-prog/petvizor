@@ -8,7 +8,8 @@ export function createClient() {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
-      detectSessionInUrl: false
+      detectSessionInUrl: false,
+      flowType: 'pkce'
     },
     global: {
       headers: {
@@ -17,6 +18,11 @@ export function createClient() {
     },
     db: {
       schema: 'public'
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     }
   })
 }
