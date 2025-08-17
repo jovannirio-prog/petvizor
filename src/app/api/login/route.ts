@@ -22,6 +22,20 @@ export async function POST(request: NextRequest) {
     console.log('🔧 API Login: Создаем Supabase клиент')
     console.log('🔧 API Login: SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
     console.log('🔧 API Login: SUPABASE_ANON_KEY существует:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    console.log('🔧 API Login: SUPABASE_ANON_KEY длина:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0)
+    
+    // Проверяем переменные окружения
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('❌ API Login: Отсутствуют переменные окружения Supabase')
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Ошибка конфигурации сервера: отсутствуют переменные окружения Supabase',
+        details: {
+          hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        }
+      }, { status: 500 })
+    }
     
     const supabase = createClient()
 
@@ -35,10 +49,34 @@ export async function POST(request: NextRequest) {
       console.error('❌ API Login: Ошибка входа:', error)
       console.error('❌ API Login: Код ошибки:', error.status)
       console.error('❌ API Login: Сообщение ошибки:', error.message)
+      console.error('❌ API Login: Детали ошибки:', error)
+      
+      // Более детальная обработка ошибок
+      let errorMessage = error.message || 'Ошибка входа в систему'
+      let statusCode = 401
+      
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = 'Неверный email или пароль'
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Email не подтвержден. Проверьте почту и подтвердите регистрацию.'
+        statusCode = 403
+      } else if (error.message.includes('Too many requests')) {
+        errorMessage = 'Слишком много попыток входа. Попробуйте позже.'
+        statusCode = 429
+      } else if (error.message.includes('fetch')) {
+        errorMessage = 'Ошибка сети. Проверьте подключение к интернету.'
+        statusCode = 500
+      }
+      
       return NextResponse.json({ 
         success: false, 
-        error: error.message || 'Ошибка входа в систему' 
-      }, { status: 401 })
+        error: errorMessage,
+        details: {
+          originalError: error.message,
+          status: error.status,
+          name: error.name
+        }
+      }, { status: statusCode })
     }
 
     if (!data.user) {
@@ -70,7 +108,11 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ 
       success: false, 
-      error: 'Внутренняя ошибка сервера' 
+      error: 'Внутренняя ошибка сервера',
+      details: {
+        type: error.name,
+        message: error.message
+      }
     }, { status: 500 })
   }
 }
