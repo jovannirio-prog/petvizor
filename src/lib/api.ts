@@ -5,9 +5,9 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
     // Получаем текущую сессию
     const { data: { session } } = await supabase.auth.getSession()
     
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     }
 
     // Добавляем токен авторизации если есть
@@ -37,7 +37,7 @@ export async function apiUpload(url: string, formData: FormData) {
     // Получаем текущую сессию
     const { data: { session } } = await supabase.auth.getSession()
     
-    const headers: HeadersInit = {}
+    const headers: Record<string, string> = {}
 
     // Добавляем токен авторизации если есть
     if (session?.access_token) {
