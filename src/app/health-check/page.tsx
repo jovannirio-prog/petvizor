@@ -1,9 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function HealthCheckPage() {
   const [status, setStatus] = useState<string>('Проверка...')
+  const [clientInfo, setClientInfo] = useState<any>(null)
+
+  useEffect(() => {
+    // Получаем информацию о клиенте только на клиенте
+    setClientInfo({
+      time: new Date().toLocaleString(),
+      url: window.location.href,
+      userAgent: navigator.userAgent
+    })
+  }, [])
 
   const checkHealth = async () => {
     try {
@@ -40,14 +50,16 @@ export default function HealthCheckPage() {
           <p className="text-gray-700">{status}</p>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
-          <h3 className="text-lg font-medium text-blue-900 mb-4">Информация о деплое:</h3>
-          <div className="space-y-2 text-blue-800">
-            <p><strong>Время:</strong> {new Date().toLocaleString()}</p>
-            <p><strong>URL:</strong> {window.location.href}</p>
-            <p><strong>User Agent:</strong> {navigator.userAgent}</p>
+        {clientInfo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
+            <h3 className="text-lg font-medium text-blue-900 mb-4">Информация о деплое:</h3>
+            <div className="space-y-2 text-blue-800">
+              <p><strong>Время:</strong> {clientInfo.time}</p>
+              <p><strong>URL:</strong> {clientInfo.url}</p>
+              <p><strong>User Agent:</strong> {clientInfo.userAgent}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
