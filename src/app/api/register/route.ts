@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       console.error('❌ API Register: Код ошибки:', error.status)
       console.error('❌ API Register: Сообщение ошибки:', error.message)
       console.error('❌ API Register: Детали ошибки:', error)
+      console.error('❌ API Register: Имя ошибки:', error.name)
       
       // Более детальная обработка ошибок
       let errorMessage = error.message || 'Ошибка регистрации'
@@ -68,8 +69,11 @@ export async function POST(request: NextRequest) {
       } else if (error.message.includes('Invalid email')) {
         errorMessage = 'Неверный формат email'
         statusCode = 400
-      } else if (error.message.includes('fetch')) {
-        errorMessage = 'Ошибка сети. Проверьте подключение к интернету.'
+      } else if (error.message.includes('fetch') || error.message.includes('fetch failed') || error.name === 'AuthRetryableFetchError') {
+        errorMessage = 'Ошибка подключения к серверу аутентификации. Проверьте настройки Supabase.'
+        statusCode = 500
+      } else if (error.message.includes('Database error saving new user')) {
+        errorMessage = 'Ошибка базы данных при создании пользователя. Проверьте настройки Supabase и RLS политики.'
         statusCode = 500
       }
       
@@ -79,7 +83,8 @@ export async function POST(request: NextRequest) {
         details: {
           originalError: error.message,
           status: error.status,
-          name: error.name
+          name: error.name,
+          fullError: error
         }
       }, { status: statusCode })
     }
