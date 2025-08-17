@@ -128,7 +128,7 @@ export default function DebugEnvPage() {
                   <div key={key} className="flex justify-between items-center">
                     <span className="font-mono text-sm font-medium">{key}:</span>
                     <span className="font-mono text-sm text-gray-600">
-                      {value === null ? '❌ Отсутствует' : value === '***HIDDEN***' ? '✅ Настроен' : value}
+                      {value === null ? '❌ Отсутствует' : value === '***HIDDEN***' ? '✅ Настроен' : String(value)}
                     </span>
                   </div>
                 ))}
@@ -136,11 +136,11 @@ export default function DebugEnvPage() {
             </div>
 
             {/* Рекомендации */}
-            {Object.values(result.recommendations).some(rec => rec !== null) && (
+            {Object.values(result.recommendations).some((rec: any) => rec !== null) && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h3 className="text-lg font-medium mb-4">Рекомендации</h3>
                 <div className="space-y-3">
-                  {Object.entries(result.recommendations).map(([key, recommendation]) => (
+                  {Object.entries(result.recommendations).map(([key, recommendation]: [string, any]) => (
                     recommendation && (
                       <div key={key} className="flex items-start">
                         <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" />
