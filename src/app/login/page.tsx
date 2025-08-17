@@ -23,6 +23,8 @@ export default function LoginPage() {
 
     try {
       console.log('📧 Login: Отправляем запрос на /api/login')
+      console.log('🌐 Login: Текущий URL:', window.location.origin)
+      
       // Используем новый API endpoint для входа
       const response = await fetch('/api/login', {
         method: 'POST',
@@ -33,9 +35,31 @@ export default function LoginPage() {
           email,
           password
         })
+      }).catch((fetchError) => {
+        console.error('❌ Login: Ошибка fetch:', fetchError)
+        console.error('❌ Login: Тип ошибки:', fetchError.name)
+        console.error('❌ Login: Сообщение ошибки:', fetchError.message)
+        
+        // Проверяем тип ошибки
+        if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+          throw new Error('Ошибка сети. Проверьте подключение к интернету и настройки Supabase.')
+        } else if (fetchError.name === 'AbortError') {
+          throw new Error('Запрос был прерван. Попробуйте еще раз.')
+        } else {
+          throw new Error(`Ошибка сети: ${fetchError.message}`)
+        }
       })
 
       console.log('📡 Login: Получен ответ от сервера, статус:', response.status)
+      console.log('📡 Login: Заголовки ответа:', Object.fromEntries(response.headers.entries()))
+      
+      if (!response.ok) {
+        console.error('❌ Login: HTTP ошибка:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.error('❌ Login: Текст ошибки:', errorText)
+        throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`)
+      }
+      
       const result = await response.json()
       console.log('📄 Login: Результат:', result)
       console.log('📄 Login: result.data:', result.data)
@@ -82,7 +106,18 @@ export default function LoginPage() {
       
     } catch (error: any) {
       console.error('❌ Login: Ошибка входа:', error)
-      setError(error.message || 'Произошла неизвестная ошибка при входе')
+      console.error('❌ Login: Стек ошибки:', error.stack)
+      
+      // Более детальная обработка ошибок
+      if (error.message.includes('fetch')) {
+        setError('Ошибка сети. Проверьте подключение к интернету и настройки Supabase.')
+      } else if (error.message.includes('CORS')) {
+        setError('Ошибка CORS. Проблема с настройками сервера.')
+      } else if (error.message.includes('timeout')) {
+        setError('Превышено время ожидания ответа от сервера.')
+      } else {
+        setError(error.message || 'Произошла неизвестная ошибка при входе')
+      }
     } finally {
       setLoading(false)
     }

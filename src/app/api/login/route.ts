@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   try {
     console.log('🔐 API Login: Начало обработки запроса')
+    console.log('🔐 API Login: URL запроса:', request.url)
+    console.log('🔐 API Login: Метод запроса:', request.method)
+    console.log('🔐 API Login: Заголовки запроса:', Object.fromEntries(request.headers.entries()))
     
     const { email, password } = await request.json()
     console.log('📧 Email:', email)
@@ -17,6 +20,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔧 API Login: Создаем Supabase клиент')
+    console.log('🔧 API Login: SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('🔧 API Login: SUPABASE_ANON_KEY существует:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    
     const supabase = createClient()
 
     console.log('🔑 API Login: Пытаемся войти в систему')
@@ -27,6 +33,8 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('❌ API Login: Ошибка входа:', error)
+      console.error('❌ API Login: Код ошибки:', error.status)
+      console.error('❌ API Login: Сообщение ошибки:', error.message)
       return NextResponse.json({ 
         success: false, 
         error: error.message || 'Ошибка входа в систему' 
@@ -45,6 +53,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 API Login: data.session:', data.session)
     console.log('🔍 API Login: access_token length:', data.session?.access_token?.length)
     console.log('🔍 API Login: refresh_token length:', data.session?.refresh_token?.length)
+    
     return NextResponse.json({
       success: true,
       data: {
@@ -53,8 +62,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error) {
-    console.error('💥 API Login: Неожиданная ошибка:', error)
+  } catch (error: any) {
+    console.error('❌ API Login: Неожиданная ошибка:', error)
+    console.error('❌ API Login: Тип ошибки:', error.name)
+    console.error('❌ API Login: Сообщение ошибки:', error.message)
+    console.error('❌ API Login: Стек ошибки:', error.stack)
+    
     return NextResponse.json({ 
       success: false, 
       error: 'Внутренняя ошибка сервера' 

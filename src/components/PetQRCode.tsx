@@ -33,7 +33,11 @@ export default function PetQRCode({ petId, petName, size = 120 }: PetQRCodeProps
       setIsGenerated(false) // Сбрасываем состояние, чтобы показать загрузку
 
       // Создаем URL для публичной страницы питомца
-      const publicUrl = `${window.location.origin}/pet/${petId}`
+      // Используем переменную окружения для продакшн URL или текущий origin
+      const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
+        ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` 
+        : window.location.origin
+      const publicUrl = `${baseUrl}/pet/${petId}`
       console.log('🔧 PetQRCode: Публичный URL:', publicUrl)
 
       // Динамически импортируем QRCode

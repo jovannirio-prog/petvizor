@@ -86,7 +86,11 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
     console.log('🔍 generateQRData: userData =', userData)
     
     // Создаем URL для публичной страницы питомца
-    const publicUrl = `${window.location.origin}/pet/${petData.id}`
+    // Используем переменную окружения для продакшн URL или текущий origin
+    const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` 
+      : window.location.origin
+    const publicUrl = `${baseUrl}/pet/${petData.id}`
     console.log('🔗 Создан публичный URL:', publicUrl)
     
     // QR-код содержит только URL - при сканировании сразу откроется страница
@@ -251,7 +255,7 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
                   target="_blank"
                   className="text-green-600 hover:text-green-800 font-medium text-sm break-all"
                 >
-                  {`${window.location.origin}/pet/${pet.id}`}
+                  {`${process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : window.location.origin}/pet/${pet.id}`}
                 </Link>
               </div>
             </div>
