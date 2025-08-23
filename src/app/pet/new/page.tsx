@@ -129,9 +129,7 @@ export default function NewPetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <NavigationWrapper />
-      
+    <NavigationWrapper>
       <div className="max-w-2xl mx-auto p-4 pt-8">
         {/* Header */}
         <div className="flex items-center mb-8">
@@ -287,6 +285,6 @@ export default function NewPetPage() {
           </form>
         </div>
       </div>
-    </div>
+    </NavigationWrapper>
   )
 }

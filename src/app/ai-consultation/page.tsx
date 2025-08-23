@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User } from 'lucide-react'
+import { Send, Bot, User, PawPrint, Settings, MessageCircle, Clock, AlertCircle } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
+import { usePets } from '@/hooks/usePets'
 import NavigationWrapper from '@/components/NavigationWrapper'
 
 interface Message {
@@ -10,13 +11,24 @@ interface Message {
   text: string
   isUser: boolean
   timestamp: string
+  context?: any
+  sources?: {
+    count: number
+    codes: string
+  }
 }
 
+// Используем тип Pet из хука usePets
+
 export default function AIConsultationPage() {
-  const { user, loading, logout } = useUser()
+  const { user, loading } = useUser()
+  const { pets, loading: petsLoading } = usePets()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedPet, setSelectedPet] = useState<any>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [showPetSelector, setShowPetSelector] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -26,6 +38,46 @@ export default function AIConsultationPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Добавляем отладку для проверки загрузки питомцев
+  useEffect(() => {
+    console.log('🔍 AI Consultation: Питомцы загружены:', pets?.length || 0, pets)
+    console.log('🔍 AI Consultation: Загрузка питомцев:', petsLoading)
+  }, [pets, petsLoading])
+
+  const handleAIResponse = (data: any) => {
+    // Сохраняем sessionId для продолжения диалога
+    if (data.sessionId && !sessionId) {
+      setSessionId(data.sessionId)
+    }
+    
+    // Очищаем ответ от дублированной информации об источниках
+    let responseText = data.response
+    
+    // Удаляем строки с информацией об источниках, которые OpenAI мог добавить
+    responseText = responseText.replace(/📚\s*\*\*Источник.*?LeoVet.*?\*\*.*?(\n|$)/gi, '')
+    responseText = responseText.replace(/Найдено \d+ источник.*?(\n|$)/gi, '')
+    
+    // Подготавливаем информацию об источниках отдельно
+    let sources = undefined
+    if (data.context && data.context.relevantKnowledgeFound > 0) {
+      sources = {
+        count: data.context.relevantKnowledgeFound,
+        codes: data.context.usedRecordCodes || 'Коды не найдены'
+      }
+    }
+    
+    const aiMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      text: responseText,
+      isUser: false,
+      timestamp: data.timestamp || new Date().toISOString(),
+      context: data.context,
+      sources: sources
+    }
+
+    setMessages(prev => [...prev, aiMessage])
+  }
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
@@ -42,36 +94,118 @@ export default function AIConsultationPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/chat', {
+      // Получаем актуальный токен и обновляем его при необходимости
+      let accessToken = localStorage.getItem('supabase_access_token')
+      const refreshToken = localStorage.getItem('supabase_refresh_token')
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
+      
+      if (refreshToken) {
+        headers['x-refresh-token'] = refreshToken
+      }
+
+      // Подготавливаем историю диалога для передачи на сервер
+      const conversationHistory = messages.map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.text
+      }))
+
+      const response = await fetch('/api/ai/consultation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           message: inputMessage,
-          userId: user?.id
+          petInfo: selectedPet,
+          sessionId: sessionId,
+          conversationHistory: conversationHistory
         }),
       })
 
+      if (response.status === 401) {
+        // Токен истек, пытаемся обновить
+        console.log('🔍 AI Consultation: Токен истек, пытаемся обновить')
+        const refreshResponse = await fetch('/api/user', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'x-refresh-token': refreshToken || ''
+          }
+        })
+        
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json()
+          if (refreshData.newTokens) {
+            localStorage.setItem('supabase_access_token', refreshData.newTokens.access_token)
+            if (refreshData.newTokens.refresh_token) {
+              localStorage.setItem('supabase_refresh_token', refreshData.newTokens.refresh_token)
+            }
+            accessToken = refreshData.newTokens.access_token
+            
+            // Повторяем запрос с новым токеном
+            headers['Authorization'] = `Bearer ${accessToken}`
+            const retryResponse = await fetch('/api/ai/consultation', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                message: inputMessage,
+                petInfo: selectedPet,
+                sessionId: sessionId,
+                conversationHistory: conversationHistory
+              }),
+            })
+            
+            if (!retryResponse.ok) {
+              const errorData = await retryResponse.json().catch(() => ({}))
+              throw new Error(errorData.error || `HTTP ${retryResponse.status}: ${retryResponse.statusText}`)
+            }
+            
+            const data = await retryResponse.json()
+            handleAIResponse(data)
+            return
+          }
+        }
+        
+        // Если не удалось обновить токен, перенаправляем на логин
+        throw new Error('Сессия истекла. Пожалуйста, войдите заново.')
+      }
+
       if (!response.ok) {
-        throw new Error('Ошибка сети')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: data.response,
-        isUser: false,
-        timestamp: data.timestamp
-      }
-
-      setMessages(prev => [...prev, aiMessage])
+      handleAIResponse(data)
     } catch (error) {
       console.error('Ошибка при отправке сообщения:', error)
+      
+      // Если сессия истекла, перенаправляем на логин
+      if (error instanceof Error && error.message.includes('Сессия истекла')) {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: 'Сессия истекла. Перенаправляем на страницу входа...',
+          isUser: false,
+          timestamp: new Date().toISOString()
+        }
+        setMessages(prev => [...prev, errorMessage])
+        
+        // Очищаем токены и перенаправляем
+        setTimeout(() => {
+          localStorage.removeItem('supabase_access_token')
+          localStorage.removeItem('supabase_refresh_token')
+          window.location.href = '/login'
+        }, 2000)
+        return
+      }
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Извините, произошла ошибка. Попробуйте еще раз.',
+        text: `Извините, произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}. Попробуйте еще раз или обновите страницу.`,
         isUser: false,
         timestamp: new Date().toISOString()
       }
@@ -88,6 +222,40 @@ export default function AIConsultationPage() {
     }
   }
 
+  const startNewSession = () => {
+    setMessages([])
+    setSessionId(null)
+  }
+
+  const getRoleDisplayName = () => {
+    if (!user?.role) return 'Пользователь'
+    return user.role.display_name || user.role.name || 'Пользователь'
+  }
+
+  const getRoleDescription = () => {
+    if (!user?.role) return 'Задайте мне любой вопрос о вашем питомце!'
+    
+    const role = user.role.name
+    switch (role) {
+      case 'admin':
+        return 'Администратор системы - полный доступ ко всем данным и функциям'
+      case 'clinic_admin':
+        return 'Администратор ветклиники - профессиональные протоколы и процедуры'
+      case 'clinic_vet':
+        return 'Ветеринарный врач - медицинская терминология и диагностика'
+      case 'knowledge':
+        return 'Редактор базы знаний - точность и источники информации'
+      case 'breeder':
+        return 'Заводчик - специфика разведения и генетики'
+      case 'shelter':
+        return 'Приют/Волонтер - доступность и практичность'
+      case 'partner':
+        return 'Коммерческий партнер - бизнес-аспекты и сотрудничество'
+      default:
+        return 'Задайте мне любой вопрос о вашем питомце!'
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -101,8 +269,7 @@ export default function AIConsultationPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <NavigationWrapper />
+      <NavigationWrapper>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">ИИ-консультация</h1>
@@ -117,27 +284,116 @@ export default function AIConsultationPage() {
             </div>
           </div>
         </div>
-      </div>
+      </NavigationWrapper>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <NavigationWrapper />
-      
-      <div className="max-w-4xl mx-auto p-4 pt-8">
+    <NavigationWrapper>
+      <div className="max-w-6xl mx-auto p-4 pt-8">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
-            <div className="flex items-center space-x-3">
-              <Bot className="h-8 w-8" />
-              <div>
-                <h1 className="text-2xl font-bold">ИИ-консультация</h1>
-                <p className="text-blue-100">
-                  Привет, {user?.email}! Я Petvizor AI - ваш умный помощник для ухода за домашними животными. Задайте мне любой вопрос о вашем питомце!
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Bot className="h-8 w-8" />
+                <div>
+                  <h1 className="text-2xl font-bold">ИИ-консультация</h1>
+                  <p className="text-blue-100">
+                    Привет, {user?.full_name || user?.email}! Я Petvizor AI - ваш умный помощник.
+                  </p>
+                  <p className="text-blue-100 text-sm mt-1">
+                    Роль: {getRoleDisplayName()} • {getRoleDescription()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={startNewSession}
+                  className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-colors text-sm"
+                >
+                  Новый диалог
+                </button>
               </div>
             </div>
+          </div>
+
+          {/* Pet Selector */}
+          <div className="bg-gray-50 p-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                                 <PawPrint className="h-5 w-5 text-gray-600" />
+                                 <span className="text-sm font-medium text-gray-700">Питомец (опционально):</span>
+                {selectedPet ? (
+                  <div className="flex items-center space-x-2">
+                                         <span className="text-sm text-gray-900">
+                       {selectedPet.name}
+                       {selectedPet.breed && ` • ${selectedPet.breed}`}
+                     </span>
+                    <button
+                      onClick={() => setShowPetSelector(!showPetSelector)}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      Изменить
+                    </button>
+                  </div>
+                                 ) : (
+                   <button
+                     onClick={() => setShowPetSelector(!showPetSelector)}
+                     className="text-blue-600 hover:text-blue-800 text-sm"
+                   >
+                     Выбрать питомца (необязательно)
+                   </button>
+                 )}
+              </div>
+              {sessionId && (
+                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                  <Clock className="h-3 w-3" />
+                  <span>Сессия активна</span>
+                </div>
+              )}
+            </div>
+
+            {/* Pet Selector Dropdown */}
+            {showPetSelector && (
+              <div className="mt-3 p-3 bg-white rounded-lg border shadow-sm">
+                {petsLoading ? (
+                  <div className="text-center py-2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  </div>
+                ) : pets && pets.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {pets.map((pet) => (
+                      <button
+                        key={pet.id}
+                        onClick={() => {
+                          setSelectedPet(pet)
+                          setShowPetSelector(false)
+                        }}
+                        className={`p-2 rounded-lg border text-left transition-colors ${
+                          selectedPet?.id === pet.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{pet.name}</div>
+                                                 <div className="text-xs text-gray-600">
+                           {pet.breed && `${pet.breed}`}
+                         </div>
+                      </button>
+                    ))}
+                  </div>
+                                 ) : (
+                   <div className="text-center py-2 text-gray-500">
+                     <PawPrint className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                     <p className="text-sm">Нет питомцев</p>
+                     <a href="/pet/new" className="text-blue-600 hover:text-blue-800 text-sm">
+                       Добавить питомца
+                     </a>
+                   </div>
+                 )}
+              </div>
+            )}
           </div>
 
           {/* Messages */}
@@ -145,7 +401,12 @@ export default function AIConsultationPage() {
             {messages.length === 0 && (
               <div className="text-center text-gray-500 py-8">
                 <Bot className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>Начните разговор, задав вопрос о вашем питомце</p>
+                <p className="mb-2">Начните разговор, задав вопрос о вашем питомце</p>
+                {selectedPet && (
+                  <p className="text-sm text-gray-400">
+                    Консультация для: {selectedPet.name}
+                  </p>
+                )}
               </div>
             )}
             
@@ -174,11 +435,22 @@ export default function AIConsultationPage() {
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                    <p className={`text-xs mt-1 ${
+                    <div className={`text-xs mt-1 ${
                       message.isUser ? 'text-blue-100' : 'text-gray-500'
                     }`}>
                       {new Date(message.timestamp).toLocaleTimeString()}
-                    </p>
+                      {message.sources && !message.isUser && (
+                        <div className="mt-2">
+                          <div className="flex items-center mb-1">
+                            <MessageCircle className="h-3 w-3 mr-1" />
+                            <span>Найдено {message.sources.count} источников из базы знаний LeoVet:</span>
+                          </div>
+                          <div className="text-xs text-gray-400 whitespace-pre-line">
+                            {message.sources.codes}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -211,7 +483,10 @@ export default function AIConsultationPage() {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Задайте вопрос о вашем питомце..."
+                placeholder={selectedPet 
+                  ? `Задайте вопрос о ${selectedPet.name}...`
+                  : "Задайте вопрос о ваших питомцах..."
+                }
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 rows={2}
                 disabled={isLoading}
@@ -225,10 +500,17 @@ export default function AIConsultationPage() {
                 <span>Отправить</span>
               </button>
             </div>
+            
+            {!selectedPet && pets && pets.length > 0 && (
+              <div className="mt-2 flex items-center text-sm text-blue-600">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                Для более точной консультации выберите питомца (опционально)
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </NavigationWrapper>
   )
 }
 

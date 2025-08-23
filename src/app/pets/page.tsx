@@ -62,7 +62,7 @@ export default function PetsPage() {
       
       if (response.ok) {
         const data = await response.json()
-        setPets(data)
+        setPets(data.pets || [])
       } else {
         console.error('Ошибка загрузки питомцев')
       }
@@ -73,7 +73,7 @@ export default function PetsPage() {
     }
   }
 
-  const filteredPets = pets.filter(pet => {
+  const filteredPets = (Array.isArray(pets) ? pets : []).filter(pet => {
     const matchesSearch = pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (pet.breed && pet.breed.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesSpecies = filterSpecies === 'all' || (pet.species && pet.species === filterSpecies)
@@ -98,6 +98,307 @@ export default function PetsPage() {
         return '🐠'
       default:
         return '🐾'
+    }
+  }
+
+  const getSpeciesName = (species: string | null) => {
+    if (!species) return 'Не указан'
+    
+    switch (species.toLowerCase()) {
+      case 'dog':
+        return 'Собака'
+      case 'cat':
+        return 'Кошка'
+      case 'bird':
+        return 'Птица'
+      case 'fish':
+        return 'Рыба'
+      case 'rabbit':
+        return 'Кролик'
+      case 'hamster':
+        return 'Хомяк'
+      case 'guinea_pig':
+        return 'Морская свинка'
+      case 'turtle':
+        return 'Черепаха'
+      case 'snake':
+        return 'Змея'
+      case 'lizard':
+        return 'Ящерица'
+      case 'horse':
+        return 'Лошадь'
+      case 'cow':
+        return 'Корова'
+      case 'pig':
+        return 'Свинья'
+      case 'goat':
+        return 'Коза'
+      case 'sheep':
+        return 'Овца'
+      case 'chicken':
+        return 'Курица'
+      case 'duck':
+        return 'Утка'
+      case 'goose':
+        return 'Гусь'
+      case 'turkey':
+        return 'Индейка'
+      case 'parrot':
+        return 'Попугай'
+      case 'canary':
+        return 'Канарейка'
+      case 'finch':
+        return 'Зяблик'
+      case 'budgie':
+        return 'Волнистый попугай'
+      case 'cockatiel':
+        return 'Корелла'
+      case 'macaw':
+        return 'Ара'
+      case 'cockatoo':
+        return 'Какаду'
+      case 'lovebird':
+        return 'Неразлучник'
+      case 'goldfish':
+        return 'Золотая рыбка'
+      case 'betta':
+        return 'Петушок'
+      case 'tetra':
+        return 'Тетра'
+      case 'guppy':
+        return 'Гуппи'
+      case 'molly':
+        return 'Молли'
+      case 'platy':
+        return 'Пецилия'
+      case 'swordtail':
+        return 'Меченосец'
+      case 'angelfish':
+        return 'Скалярия'
+      case 'discus':
+        return 'Дискус'
+      case 'cichlid':
+        return 'Цихлида'
+      case 'catfish':
+        return 'Сом'
+      case 'shark':
+        return 'Акула'
+      case 'ray':
+        return 'Скат'
+      case 'eel':
+        return 'Угорь'
+      case 'crab':
+        return 'Краб'
+      case 'lobster':
+        return 'Омар'
+      case 'shrimp':
+        return 'Креветка'
+      case 'snail':
+        return 'Улитка'
+      case 'clam':
+        return 'Моллюск'
+      case 'mussel':
+        return 'Мидия'
+      case 'oyster':
+        return 'Устрица'
+      case 'scallop':
+        return 'Гребешок'
+      case 'abalone':
+        return 'Морское ушко'
+      case 'conch':
+        return 'Ракушка'
+      case 'whelk':
+        return 'Бухин'
+      case 'periwinkle':
+        return 'Береговик'
+      case 'limpet':
+        return 'Морское блюдце'
+      case 'barnacle':
+        return 'Морская уточка'
+      case 'sea_urchin':
+        return 'Морской ёж'
+      case 'starfish':
+        return 'Морская звезда'
+      case 'sea_cucumber':
+        return 'Морской огурец'
+      case 'jellyfish':
+        return 'Медуза'
+      case 'coral':
+        return 'Коралл'
+      case 'anemone':
+        return 'Актиния'
+      case 'sponge':
+        return 'Губка'
+      case 'worm':
+        return 'Червь'
+      case 'leech':
+        return 'Пиявка'
+      case 'slug':
+        return 'Слизень'
+      case 'centipede':
+        return 'Сороконожка'
+      case 'millipede':
+        return 'Многоножка'
+      case 'spider':
+        return 'Паук'
+      case 'scorpion':
+        return 'Скорпион'
+      case 'tarantula':
+        return 'Тарантул'
+      case 'tick':
+        return 'Клещ'
+      case 'mite':
+        return 'Клещ'
+      case 'flea':
+        return 'Блоха'
+      case 'louse':
+        return 'Вошь'
+      case 'bedbug':
+        return 'Клоп'
+      case 'ant':
+        return 'Муравей'
+      case 'bee':
+        return 'Пчела'
+      case 'wasp':
+        return 'Оса'
+      case 'hornet':
+        return 'Шершень'
+      case 'yellow_jacket':
+        return 'Оса'
+      case 'bumblebee':
+        return 'Шмель'
+      case 'butterfly':
+        return 'Бабочка'
+      case 'moth':
+        return 'Моль'
+      case 'dragonfly':
+        return 'Стрекоза'
+      case 'damselfly':
+        return 'Стрекоза'
+      case 'grasshopper':
+        return 'Кузнечик'
+      case 'cricket':
+        return 'Сверчок'
+      case 'katydid':
+        return 'Кузнечик'
+      case 'cicada':
+        return 'Цикада'
+      case 'aphid':
+        return 'Тля'
+      case 'scale_insect':
+        return 'Щитовка'
+      case 'mealybug':
+        return 'Мучнистый червец'
+      case 'whitefly':
+        return 'Белокрылка'
+      case 'thrips':
+        return 'Трипс'
+      case 'leafhopper':
+        return 'Цикадка'
+      case 'planthopper':
+        return 'Цикадка'
+      case 'treehopper':
+        return 'Цикадка'
+      case 'spittlebug':
+        return 'Пенница'
+      case 'lanternfly':
+        return 'Фонарница'
+      case 'stink_bug':
+        return 'Клоп'
+      case 'assassin_bug':
+        return 'Хищнец'
+      case 'bed_bug':
+        return 'Постельный клоп'
+      case 'kissing_bug':
+        return 'Триатомовый клоп'
+      case 'water_bug':
+        return 'Водяной клоп'
+      case 'backswimmer':
+        return 'Гладыш'
+      case 'water_boatman':
+        return 'Гребляк'
+      case 'water_scorpion':
+        return 'Водяной скорпион'
+      case 'giant_water_bug':
+        return 'Гигантский водяной клоп'
+      case 'toe_biter':
+        return 'Водяной клоп'
+      case 'electric_light_bug':
+        return 'Электрический клоп'
+      case 'fish_killer':
+        return 'Рыбный клоп'
+      case 'alligator_bug':
+        return 'Аллигаторовый клоп'
+      case 'lethocerus':
+        return 'Летоцерус'
+      case 'belostoma':
+        return 'Белостома'
+      case 'abedus':
+        return 'Абедус'
+      case 'ranatra':
+        return 'Ранатра'
+      case 'nepa':
+        return 'Непа'
+      case 'corixa':
+        return 'Корикса'
+      case 'sigara':
+        return 'Сигара'
+      case 'cenocorixa':
+        return 'Ценокорикса'
+      case 'hesperocorixa':
+        return 'Гесперокорикса'
+      case 'callicorixa':
+        return 'Калликорикса'
+      case 'micronecta':
+        return 'Микронекта'
+      case 'plea':
+        return 'Плея'
+      case 'hebrus':
+        return 'Гебрус'
+      case 'velia':
+        return 'Велиа'
+      case 'gerris':
+        return 'Геррис'
+      case 'aquarius':
+        return 'Аквариус'
+      case 'limnoporus':
+        return 'Лимнопорус'
+      case 'metrobates':
+        return 'Метробатес'
+      case 'rheumatobates':
+        return 'Ревматобатес'
+      case 'tachygerris':
+        return 'Тахигеррис'
+      case 'eurygerris':
+        return 'Эвригеррис'
+      case 'trepobates':
+        return 'Трепобатес'
+      case 'metrobatoides':
+        return 'Метробатоидес'
+      case 'rheumatometroides':
+        return 'Ревматометроидес'
+      case 'tachygerris_adela':
+        return 'Тахигеррис Адела'
+      case 'eurygerris_flavolineatus':
+        return 'Эвригеррис флаволинеатус'
+      case 'trepobates_subnitidus':
+        return 'Трепобатес субнитидус'
+      case 'metrobatoides_heterocephalus':
+        return 'Метробатоидес гетероцефалус'
+      case 'rheumatometroides_rileyi':
+        return 'Ревматометроидес рилеи'
+      case 'tachygerris_adela_white':
+        return 'Тахигеррис Адела Уайт'
+      case 'eurygerris_flavolineatus_white':
+        return 'Эвригеррис флаволинеатус Уайт'
+      case 'trepobates_subnitidus_white':
+        return 'Трепобатес субнитидус Уайт'
+      case 'metrobatoides_heterocephalus_white':
+        return 'Метробатоидес гетероцефалус Уайт'
+      case 'rheumatometroides_rileyi_white':
+        return 'Ревматометроидес рилеи Уайт'
+      default:
+        return species
     }
   }
 
@@ -138,9 +439,7 @@ export default function PetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <NavigationWrapper />
-      
+    <NavigationWrapper>
       <div className="max-w-7xl mx-auto p-4 pt-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -195,6 +494,13 @@ export default function PetsPage() {
                 <option value="cat">Кошки</option>
                 <option value="bird">Птицы</option>
                 <option value="fish">Рыбы</option>
+                <option value="rabbit">Кролики</option>
+                <option value="hamster">Хомяки</option>
+                <option value="guinea_pig">Морские свинки</option>
+                <option value="turtle">Черепахи</option>
+                <option value="snake">Змеи</option>
+                <option value="lizard">Ящерицы</option>
+                <option value="horse">Лошади</option>
                 <option value="other">Другие</option>
               </select>
             </div>
@@ -276,7 +582,7 @@ export default function PetsPage() {
                   <div className="space-y-3">
                     <div className="flex items-center text-sm text-gray-600">
                       <PawPrint className="h-4 w-4 mr-2" />
-                      <span className="capitalize">{pet.species || 'Не указан'}</span>
+                      <span className="capitalize">{getSpeciesName(pet.species)}</span>
                       {pet.breed && <span className="ml-1">• {pet.breed}</span>}
                     </div>
                     
@@ -312,6 +618,6 @@ export default function PetsPage() {
           </div>
         )}
       </div>
-    </div>
+    </NavigationWrapper>
   )
 }

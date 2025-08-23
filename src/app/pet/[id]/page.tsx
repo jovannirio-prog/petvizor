@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import PetQRCode from '@/components/PetQRCode'
+import PetEvents from '@/components/PetEvents'
 
 interface Pet {
   id: string
@@ -321,24 +322,31 @@ export default function PetPage({ params }: { params: { id: string } }) {
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Pet Photo */}
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-              {pet.photo_url ? (
-                <img 
-                  src={pet.photo_url} 
-                  alt={pet.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                    target.nextElementSibling?.classList.remove('hidden')
-                  }}
-                />
-              ) : null}
-              <div className={`text-8xl ${pet.photo_url ? 'hidden' : ''}`}>
-                {getSpeciesIcon(pet.species)}
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                {pet.photo_url ? (
+                  <img 
+                    src={pet.photo_url} 
+                    alt={pet.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      target.nextElementSibling?.classList.remove('hidden')
+                    }}
+                  />
+                ) : null}
+                <div className={`text-8xl ${pet.photo_url ? 'hidden' : ''}`}>
+                  {getSpeciesIcon(pet.species)}
+                </div>
               </div>
             </div>
+
+            {/* QR Code - показываем только владельцу питомца, но не в режиме предварительного просмотра */}
+            {user && pet.user_id === user.id && !isPreviewMode && (
+              <PetQRCode petId={pet.id} petName={pet.name} />
+            )}
           </div>
 
           {/* Pet Info */}
@@ -387,6 +395,11 @@ export default function PetPage({ params }: { params: { id: string } }) {
                 )}
               </div>
             </div>
+
+            {/* Events - показываем только владельцу питомца */}
+            {user && pet.user_id === user.id && (
+              <PetEvents petId={pet.id} petName={pet.name} />
+            )}
 
             {/* Lost Info */}
             {pet.lost_comment && (
@@ -445,11 +458,6 @@ export default function PetPage({ params }: { params: { id: string } }) {
                   )}
                 </div>
               </div>
-            )}
-
-            {/* QR Code - показываем только владельцу питомца, но не в режиме предварительного просмотра */}
-            {user && pet.user_id === user.id && !isPreviewMode && (
-              <PetQRCode petId={pet.id} petName={pet.name} />
             )}
           </div>
         </div>

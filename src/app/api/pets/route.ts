@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔧 API Pets: Найдено питомцев:', pets?.length || 0)
 
-    return NextResponse.json(pets || [])
+    return NextResponse.json({ pets: pets || [] })
   } catch (error) {
     console.error('🔧 API Pets: Неожиданная ошибка:', error)
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
@@ -97,6 +97,24 @@ export async function POST(request: NextRequest) {
 
     const pet = pets[0]
     console.log('🔧 API Pets: Питомец создан:', pet)
+
+    // Автоматически генерируем QR-код для нового питомца
+    try {
+      console.log('🔧 API Pets: Генерируем QR-код для нового питомца')
+      const qrResponse = await fetch(`${process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000'}/api/pets/${pet.id}/qr-code`, {
+        method: 'POST'
+      })
+      
+      if (qrResponse.ok) {
+        const qrData = await qrResponse.json()
+        console.log('🔧 API Pets: QR-код сгенерирован:', qrData.qr_code_url)
+      } else {
+        console.warn('🔧 API Pets: Не удалось сгенерировать QR-код, но питомец создан')
+      }
+    } catch (qrError) {
+      console.warn('🔧 API Pets: Ошибка генерации QR-кода:', qrError)
+      // Не прерываем создание питомца из-за ошибки QR-кода
+    }
 
     return NextResponse.json(pet)
   } catch (error) {

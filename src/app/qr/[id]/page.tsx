@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useUser } from '@/hooks/useUser'
-import Navigation from '@/components/Navigation'
+import NavigationWrapper from '@/components/NavigationWrapper'
 import QRCodeGenerator from '@/components/QRCodeGenerator'
 import { ArrowLeft, QrCode, PawPrint, User, Mail } from 'lucide-react'
 import Link from 'next/link'
@@ -100,19 +100,17 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
 
   if (userLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Navigation />
+      <NavigationWrapper>
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </div>
+      </NavigationWrapper>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Navigation />
+      <NavigationWrapper>
         <div className="max-w-4xl mx-auto p-4 pt-8">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="text-red-600 mb-4">
@@ -133,21 +131,20 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
             </Link>
           </div>
         </div>
-      </div>
+      </NavigationWrapper>
     )
   }
 
   if (!pet) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Navigation />
+      <NavigationWrapper>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <p className="text-gray-600">Питомец не найден</p>
             <p className="text-xs text-gray-500 mt-2">ID: {params.id}</p>
           </div>
         </div>
-      </div>
+      </NavigationWrapper>
     )
   }
 
@@ -155,9 +152,7 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
   console.log('🔗 QR данные:', qrData)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Navigation />
-      
+    <NavigationWrapper>
       <div className="max-w-6xl mx-auto p-4 pt-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Заголовок */}
@@ -290,7 +285,7 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
-    </div>
+    </NavigationWrapper>
   )
 }
 

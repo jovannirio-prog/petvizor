@@ -2,10 +2,19 @@
 
 import { useState, useEffect } from 'react'
 
+interface UserRole {
+  id: number
+  name: string
+  display_name: string
+  description?: string
+}
+
 interface User {
   id: string
   email: string
-  full_name?: string
+  full_name?: string | null
+  phone?: string | null
+  role?: UserRole | null
 }
 
 export function useUser() {

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft, User } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Navigation from '@/components/Navigation'
+import NavigationWrapper from '@/components/NavigationWrapper'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -113,9 +113,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Navigation />
-      
+    <NavigationWrapper>
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
@@ -146,7 +144,8 @@ export default function RegisterPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Ваше имя"
+                    placeholder="Ваше полное имя"
+                    required
                   />
                 </div>
               </div>
@@ -258,6 +257,6 @@ export default function RegisterPage() {
           </form>
         </div>
       </div>
-    </div>
+    </NavigationWrapper>
   )
 }

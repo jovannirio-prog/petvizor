@@ -6,9 +6,7 @@ import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <NavigationWrapper />
-      
+    <NavigationWrapper>
       {/* Hero Section */}
       <section className="relative py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -74,6 +72,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </div>
+    </NavigationWrapper>
   )
 }

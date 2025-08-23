@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zuuupcwjynjeqtjzdimt.supabase.com'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zuuupcwjynjeqtjzdimt.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1dXVwY3dqeW5qZXF0anpkaW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMjk3NDcsImV4cCI6MjA3MDkwNTc0N30.fUKZnqs_xlsAUlle2UmAaalupJ0rMIyoKlIhNpdTFao'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -55,6 +55,9 @@ export interface Database {
           weight: number | null
           photo_url: string | null
           lost_comment: string | null
+          qr_code_url: string | null
+          qr_code_image: string | null
+          qr_code_updated_at: string | null
           created_at: string
           updated_at: string
         }
@@ -68,6 +71,9 @@ export interface Database {
           weight?: number | null
           photo_url?: string | null
           lost_comment?: string | null
+          qr_code_url?: string | null
+          qr_code_image?: string | null
+          qr_code_updated_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -81,6 +87,9 @@ export interface Database {
           weight?: number | null
           photo_url?: string | null
           lost_comment?: string | null
+          qr_code_url?: string | null
+          qr_code_image?: string | null
+          qr_code_updated_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -109,6 +118,50 @@ export interface Database {
           message?: string
           response?: string
           created_at?: string
+        }
+      }
+      events: {
+        Row: {
+          id: string
+          pet_id: string
+          user_id: string
+          event_type: string
+          event_name: string
+          event_description: string | null
+          event_date: string
+          notification_days_before: number
+          event_status: boolean
+          notification_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          pet_id: string
+          user_id: string
+          event_type: string
+          event_name: string
+          event_description?: string | null
+          event_date: string
+          notification_days_before?: number
+          event_status?: boolean
+          notification_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          pet_id?: string
+          user_id?: string
+          event_type?: string
+          event_name?: string
+          event_description?: string | null
+          event_date?: string
+          notification_days_before?: number
+          event_status?: boolean
+          notification_active?: boolean
+          created_at?: string
+          updated_at?: string
         }
       }
     }

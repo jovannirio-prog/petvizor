@@ -1,0 +1,437 @@
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+
+// Google Sheets API конфигурация
+const GOOGLE_SHEETS_API_KEY = process.env.GOOGLE_SHEETS_API_KEY
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const SPREADSHEET_ID = '1ejjF77KXW5KEbGOrYrwxOKUfNhJWqdgeNbD8MgG6XqQ'
+const SHEET_NAMES = ['KB_LeoVet1', 'base1', 'KB_LeoVet']
+
+// Кэш для базы знаний (обновляется каждые 5 минут)
+let knowledgeBaseCache: any[] = []
+let lastCacheUpdate = 0
+const CACHE_DURATION = 5 * 60 * 1000 // 5 минут в миллисекундах
+
+export async function POST(request: Request) {
+  try {
+    // Получаем токен из заголовка Authorization
+    const authHeader = request.headers.get('authorization')
+    let supabase
+    let user
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Используем Bearer токен
+      const token = authHeader.replace('Bearer ', '')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+      supabase = createClient(supabaseUrl, serviceRoleKey)
+      
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !authUser) {
+        console.log('🔒 AI Consultation: Пользователь не аутентифицирован (Bearer)')
+        return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+      }
+      user = authUser
+    } else {
+      // Используем cookies (для обратной совместимости)
+      supabase = createRouteHandlerClient({ cookies })
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !authUser) {
+        console.log('🔒 AI Consultation: Пользователь не аутентифицирован (cookies)')
+        return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+      }
+      user = authUser
+    }
+    
+    // Проверяем, что пользователь получен
+    if (!user) {
+      console.log('🔒 AI Consultation: Пользователь не аутентифицирован')
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+    }
+
+    // Получаем данные запроса
+    const { message, petInfo, sessionId, conversationHistory: clientHistory } = await request.json()
+
+    if (!message) {
+      return NextResponse.json({ error: 'Сообщение обязательно' }, { status: 400 })
+    }
+
+    console.log('🔍 AI Consultation: Информация о питомце:', petInfo ? 'Выбран питомец' : 'Питомец не выбран')
+
+    console.log('🔍 AI Consultation: Запрос от пользователя:', user.email, 'Сообщение:', message)
+
+    // Получаем профиль пользователя для определения роли
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select(`
+        role_id,
+        user_roles (
+          name,
+          display_name
+        )
+      `)
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.log('⚠️ AI Consultation: Профиль не найден, используем роль по умолчанию')
+    }
+
+    const userRole = (profile?.user_roles as any)?.name || 'owner'
+    console.log('🔍 AI Consultation: Роль пользователя:', userRole)
+
+    // Используем историю диалога с клиента, если она есть, иначе пытаемся загрузить из БД
+    let conversationHistory: Array<{role: string, content: string}> = []
+    
+    if (clientHistory && Array.isArray(clientHistory) && clientHistory.length > 0) {
+      // Используем историю с клиента
+      conversationHistory = clientHistory
+      console.log('🔍 AI Consultation: Используем историю с клиента, сообщений:', clientHistory.length)
+    } else {
+      // Пытаемся загрузить из БД (временно упрощено из-за проблем с БД)
+      try {
+        const { data: history } = await supabase
+          .from('chat_messages')
+          .select('message, response, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(10) // Последние 10 сообщений для контекста
+
+        if (history && history.length > 0) {
+          conversationHistory = history.map(msg => ({
+            role: 'user',
+            content: msg.message
+          })).concat(history.map(msg => ({
+            role: 'assistant',
+            content: msg.response
+          })))
+          console.log('🔍 AI Consultation: Загружено сообщений из БД:', history.length)
+        } else {
+          console.log('🔍 AI Consultation: История сообщений пуста')
+        }
+      } catch (error) {
+        console.log('⚠️ AI Consultation: Ошибка загрузки истории, продолжаем без контекста:', error)
+      }
+    }
+
+    // Получаем базу знаний (с кэшированием)
+    let knowledgeBase = []
+    const now = Date.now()
+    
+    // Проверяем кэш
+    if (knowledgeBaseCache.length > 0 && (now - lastCacheUpdate) < CACHE_DURATION) {
+      knowledgeBase = knowledgeBaseCache
+      console.log('🔍 AI Consultation: Используем кэшированную базу знаний, записей:', knowledgeBase.length)
+    } else {
+      console.log('🔍 AI Consultation: Начинаем загрузку базы знаний...')
+      console.log('🔍 AI Consultation: GOOGLE_SHEETS_API_KEY:', GOOGLE_SHEETS_API_KEY ? 'Настроен' : 'НЕ НАСТРОЕН')
+      console.log('🔍 AI Consultation: SPREADSHEET_ID:', SPREADSHEET_ID)
+      console.log('🔍 AI Consultation: SHEET_NAMES:', SHEET_NAMES)
+    
+    // Временная база знаний (если Google Sheets недоступен)
+    if (!GOOGLE_SHEETS_API_KEY) {
+      console.log('🔍 AI Consultation: Используем временную базу знаний')
+      knowledgeBase = [
+        {
+          'Тема': 'Вакцинация',
+          'Описание': 'Вакцинация - это профилактическая мера для защиты животных от инфекционных заболеваний. Включает введение ослабленных или убитых возбудителей болезней для выработки иммунитета.',
+          'Рекомендации': 'Проводить вакцинацию по графику, рекомендованному ветеринаром. Основные вакцины: от бешенства, чумы, парвовируса.'
+        },
+        {
+          'Тема': 'Отравление у кошек',
+          'Описание': 'Отравление - это состояние, вызванное попаданием в организм токсичных веществ. Может быть острым или хроническим.',
+          'Рекомендации': 'При подозрении на отравление немедленно обратиться к ветеринару. Не вызывать рвоту самостоятельно. Сохранить образец токсина.'
+        },
+        {
+          'Тема': 'Протокол приема экстренных пациентов',
+          'Описание': 'Стандартная процедура приема животных в критическом состоянии.',
+          'Рекомендации': '1. Немедленная оценка состояния 2. Стабилизация жизненных функций 3. Диагностика 4. Лечение 5. Мониторинг'
+        }
+      ]
+    } else if (GOOGLE_SHEETS_API_KEY) {
+      // Пробуем разные названия листов
+      let sheetFound = false
+      
+      for (const sheetName of SHEET_NAMES) {
+        if (sheetFound) break
+        
+        try {
+          const encodedSheetName = encodeURIComponent(sheetName)
+          const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodedSheetName}?key=${GOOGLE_SHEETS_API_KEY}`
+          console.log('🔍 AI Consultation: Пробуем лист:', sheetName)
+          console.log('🔍 AI Consultation: API URL:', apiUrl)
+          
+          const response = await fetch(apiUrl)
+          console.log('🔍 AI Consultation: Статус ответа Google Sheets для', sheetName, ':', response.status)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('🔍 AI Consultation: Получены данные из Google Sheets')
+          console.log('🔍 AI Consultation: Количество строк в данных:', data.values ? data.values.length : 0)
+          
+          if (data.values && data.values.length > 0) {
+            const headers = data.values[0]
+            const rows = data.values.slice(1)
+            
+            console.log('🔍 AI Consultation: Заголовки базы знаний:', headers)
+            console.log('🔍 AI Consultation: Количество записей:', rows.length)
+            
+            knowledgeBase = rows.map((row: any[]) => {
+              const item: any = {}
+              headers.forEach((header: string, index: number) => {
+                item[header] = row[index] || ''
+              })
+              return item
+            })
+            
+            console.log('🔍 AI Consultation: База знаний загружена, записей:', knowledgeBase.length)
+            if (knowledgeBase.length > 0) {
+              console.log('🔍 AI Consultation: Пример первой записи:', JSON.stringify(knowledgeBase[0], null, 2))
+            }
+            sheetFound = true
+            break
+          } else {
+            console.log('⚠️ AI Consultation: Данные из Google Sheets пусты для листа:', sheetName)
+          }
+        } else {
+          const errorText = await response.text().catch(() => 'Не удалось получить текст ошибки')
+          console.log('⚠️ AI Consultation: Ошибка получения данных из Google Sheets для', sheetName, ':', response.status, response.statusText)
+          console.log('⚠️ AI Consultation: Детали ошибки:', errorText)
+        }
+        } catch (error) {
+          console.error('⚠️ AI Consultation: Ошибка получения базы знаний для листа', sheetName, ':', error)
+        }
+      }
+      
+      if (!sheetFound) {
+        console.log('🔍 AI Consultation: Не удалось найти подходящий лист, переключаемся на временную базу знаний')
+      }
+      
+      // Обновляем кэш
+      knowledgeBaseCache = knowledgeBase
+      lastCacheUpdate = now
+      console.log('🔍 AI Consultation: Кэш базы знаний обновлен, записей:', knowledgeBase.length)
+    } else {
+      console.log('⚠️ AI Consultation: GOOGLE_SHEETS_API_KEY не настроен, база знаний недоступна')
+    }
+    }
+
+    // Ищем релевантную информацию в базе знаний
+    console.log('🔍 AI Consultation: Ищем релевантную информацию для запроса:', message)
+    const relevantKnowledge = searchKnowledgeBase(message, knowledgeBase)
+    console.log('🔍 AI Consultation: Найдено релевантных записей:', relevantKnowledge.length)
+    if (relevantKnowledge.length > 0) {
+      console.log('🔍 AI Consultation: Релевантные записи:', JSON.stringify(relevantKnowledge, null, 2))
+    }
+
+    // Формируем системный промпт в зависимости от роли
+    const systemPrompt = generateSystemPrompt(userRole, relevantKnowledge, petInfo, conversationHistory)
+
+    // Генерируем ответ через OpenAI API
+    const aiResponse = await generateAIResponse(systemPrompt, message, conversationHistory)
+
+         // Временно отключаем сохранение в БД из-за проблем со схемой
+         // TODO: Исправить схему БД для chat_messages
+         console.log('⚠️ AI Consultation: Сохранение в БД временно отключено')
+
+    console.log('✅ AI Consultation: Ответ сгенерирован')
+
+    // Формируем список кодов использованных записей с заголовками
+    const usedRecordCodes = relevantKnowledge.map(record => {
+      const id = record.ID || 'Unknown'
+      const title = record.Заголовок || record.Заголовок || 'Без названия'
+      return `${id}: ${title}`
+    }).join('\n')
+    
+    return NextResponse.json({ 
+      response: aiResponse,
+      sessionId: sessionId || `session_${Date.now()}`,
+      context: {
+        userRole: userRole,
+        knowledgeBaseSize: knowledgeBase.length,
+        relevantKnowledgeFound: relevantKnowledge.length,
+        usedRecordCodes: usedRecordCodes
+      }
+    })
+
+  } catch (error) {
+    console.error('❌ AI Consultation: Неожиданная ошибка:', error)
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+  }
+}
+
+// Функция поиска в базе знаний
+function searchKnowledgeBase(query: string, knowledgeBase: any[]): any[] {
+  console.log('🔍 AI Consultation: Поиск в базе знаний для запроса:', query)
+  console.log('🔍 AI Consultation: Размер базы знаний:', knowledgeBase.length)
+  
+  if (knowledgeBase.length === 0) {
+    console.log('⚠️ AI Consultation: База знаний пуста')
+    return []
+  }
+  
+  const queryLower = query.toLowerCase()
+  const keywords = queryLower.split(' ').filter(word => word.length > 2)
+  console.log('🔍 AI Consultation: Ключевые слова для поиска:', keywords)
+  
+  // Создаем массив с оценкой релевантности для каждой записи
+  const scoredResults = knowledgeBase.map(item => {
+    const itemText = Object.values(item).join(' ').toLowerCase()
+    let score = 0
+    
+    // Подсчитываем количество совпадений ключевых слов
+    keywords.forEach(keyword => {
+      if (itemText.includes(keyword)) {
+        score += 1
+        // Дополнительные очки за совпадения в заголовке
+        if (item.Заголовок && item.Заголовок.toLowerCase().includes(keyword)) {
+          score += 2
+        }
+        // Дополнительные очки за совпадения в ключевых словах
+        if (item['Ключевые слова'] && item['Ключевые слова'].toLowerCase().includes(keyword)) {
+          score += 3
+        }
+      }
+    })
+    
+    return { item, score }
+  })
+  
+  // Фильтруем записи с совпадениями и сортируем по релевантности
+  const results = scoredResults
+    .filter(result => result.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5) // Возвращаем топ-5 релевантных записей
+    .map(result => result.item)
+  
+  // Логируем найденные совпадения
+  if (results.length > 0) {
+    console.log('🔍 AI Consultation: Найдено совпадений:', results.length)
+    results.forEach((item, index) => {
+      console.log(`🔍 AI Consultation: Совпадение ${index + 1}:`, Object.values(item).join(' ').substring(0, 100) + '...')
+    })
+  }
+  
+  console.log('🔍 AI Consultation: Итоговое количество найденных записей:', results.length)
+  return results
+}
+
+// Генерация системного промпта в зависимости от роли
+function generateSystemPrompt(userRole: string, relevantKnowledge: any[], petInfo: any, conversationHistory: Array<{role: string, content: string}>): string {
+  const roleDescriptions = {
+    owner: 'Владелец питомца - отвечай простым языком, без медицинского жаргона, с эмпатией',
+    admin: 'Администратор системы - профессионально, с полным доступом ко всем данным',
+    clinic_admin: 'Администратор ветклиники - ты работаешь в ветклинике и помогаешь администраторам с вопросами по работе клиники, приему клиентов, записи на приемы, протоколам работы, управлению персоналом и другими административными задачами. Отвечай профессионально, с пониманием специфики работы ветклиники.',
+    clinic_vet: 'Ветеринарный врач - профессионально, с медицинской терминологией',
+    knowledge: 'Редактор базы знаний - с акцентом на точность и источники информации',
+    breeder: 'Заводчик - с учетом специфики разведения и генетики',
+    shelter: 'Приют/Волонтер - с акцентом на доступность и практичность',
+    partner: 'Коммерческий партнер - профессионально, с учетом бизнес-аспектов'
+  }
+
+  const roleDesc = roleDescriptions[userRole as keyof typeof roleDescriptions] || roleDescriptions.owner
+
+  let prompt = `Ты — ИИ-консультант ветклиники LeoVet. ${roleDesc}.
+
+ПРАВИЛА:
+1. Приоритет базы знаний LeoVet над общими знаниями
+2. Если информации нет в базе знаний, честно скажи об этом
+3. Отвечай кратко и по делу
+4. Учитывай роль пользователя при ответе
+5. Если вопрос не связан с ветеринарией, вежливо перенаправь к специалисту
+6. При экстренных случаях давай четкие инструкции и рекомендуй срочное обращение к врачу
+7. ВАЖНО: Помни весь контекст разговора и ссылайся на предыдущие сообщения
+8. Если пользователь спрашивает "помнишь ли ты...", отвечай на основе истории диалога
+
+${userRole === 'clinic_admin' ? `
+СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ АДМИНИСТРАТОРА ВЕТКЛИНИКИ:
+- Ты работаешь в ветклинике LeoVet и помогаешь администраторам
+- Ты знаешь протоколы работы клиники, процедуры приема клиентов
+- Ты можешь давать советы по управлению персоналом, записи на приемы
+- Ты понимаешь специфику работы ветеринарной клиники
+- Отвечай как коллега-администратор, который знает все тонкости работы
+` : ''}
+
+РЕЛЕВАНТНАЯ ИНФОРМАЦИЯ ИЗ БАЗЫ ЗНАНИЙ LEOVET:
+${relevantKnowledge.length > 0 
+  ? relevantKnowledge.map((item, index) => 
+      `${index + 1}. ${Object.entries(item)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ')}`
+    ).join('\n')
+  : 'Релевантной информации в базе знаний не найдено'
+}
+
+ВАЖНО: НЕ упоминай в ответе количество источников или коды записей - это будет добавлено автоматически.
+
+${petInfo ? `ИНФОРМАЦИЯ О ПИТОМЦЕ: ${JSON.stringify(petInfo)}` : 'ИНФОРМАЦИЯ О ПИТОМЦЕ: Питомец не выбран. Отвечай в общем, но можешь попросить уточнить информацию о питомце для более точного ответа.'}
+
+${conversationHistory.length > 0 ? `
+ИСТОРИЯ ДИАЛОГА (для контекста):
+${conversationHistory.map((msg, index) => `${index + 1}. ${msg.role}: ${msg.content}`).join('\n')}
+` : 'ИСТОРИЯ ДИАЛОГА: Это начало разговора'}
+
+РОЛЬ ПОЛЬЗОВАТЕЛЯ: ${userRole === 'clinic_admin' ? 'Администратор ветклиники LeoVet' : userRole}
+
+Вопрос пользователя: `
+
+  return prompt
+}
+
+// Функция генерации ответа через OpenAI API
+async function generateAIResponse(systemPrompt: string, userMessage: string, conversationHistory: any[]): Promise<string> {
+  if (!OPENAI_API_KEY) {
+    console.log('⚠️ AI Consultation: OPENAI_API_KEY не настроен, используем заглушку')
+    return generateFallbackResponse(userMessage)
+  }
+
+  try {
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...conversationHistory,
+      { role: 'user', content: userMessage }
+    ]
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: messages,
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
+    })
+
+    if (!response.ok) {
+      console.error('❌ AI Consultation: Ошибка OpenAI API:', response.status)
+      return generateFallbackResponse(userMessage)
+    }
+
+    const data = await response.json()
+    return data.choices[0]?.message?.content || generateFallbackResponse(userMessage)
+
+  } catch (error) {
+    console.error('❌ AI Consultation: Ошибка запроса к OpenAI:', error)
+    return generateFallbackResponse(userMessage)
+  }
+}
+
+// Заглушка для случаев когда OpenAI недоступен
+function generateFallbackResponse(userMessage: string): string {
+  const responses = [
+    "Спасибо за ваш вопрос! Основываясь на базе знаний LeoVet, могу сказать, что это важная тема для обсуждения с ветеринарным врачом.",
+    "Согласно регламентам LeoVet, рекомендую обратиться к специалисту для получения точной консультации по данному вопросу.",
+    "В базе знаний LeoVet есть информация по подобным случаям. Рекомендую записаться на прием к ветеринарному врачу для детального обследования.",
+    "Этот вопрос требует индивидуального подхода. Пожалуйста, обратитесь в ветклинику LeoVet для получения профессиональной консультации.",
+    "Спасибо за обращение! Для получения точной информации по вашему вопросу, пожалуйста, свяжитесь с администратором ветклиники LeoVet."
+  ]
+
+  const responseIndex = userMessage.length % responses.length
+  return responses[responseIndex]
+}

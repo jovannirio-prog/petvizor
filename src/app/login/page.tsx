@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { LogIn, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Navigation from '@/components/Navigation'
+import NavigationWrapper from '@/components/NavigationWrapper'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -124,9 +124,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Navigation />
-      
+    <NavigationWrapper>
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
@@ -198,14 +196,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-500 text-white py-3 px-4 rounded-lg hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               ) : (
                 <>
-                  <LogIn className="h-5 w-5" />
-                  <span>Войти</span>
+                  <LogIn className="h-5 w-5 mr-2" />
+                  Войти
                 </>
               )}
             </button>
@@ -213,7 +211,7 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Нет аккаунта?{' '}
-                <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+                <Link href="/register" className="font-medium text-primary-600 hover:text-primary-500">
                   Зарегистрироваться
                 </Link>
               </p>
@@ -221,6 +219,6 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
-    </div>
+    </NavigationWrapper>
   )
 }

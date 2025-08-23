@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useUser } from '@/hooks/useUser'
-import { User, LogOut, Settings, ChevronDown } from 'lucide-react'
+import { User, LogOut, Settings, ChevronDown, Calendar, Shield } from 'lucide-react'
 import Logo from './Logo'
 
 export default function Navigation() {
@@ -16,14 +16,13 @@ export default function Navigation() {
   }, [user, loading])
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="fixed top-0 left-0 right-0 bg-white shadow-sm border-b z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-24">
           {/* Логотип */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
               <Logo />
-              <span className="ml-2 text-xl font-bold text-gray-900">PetVizor</span>
             </Link>
           </div>
 
@@ -82,6 +81,24 @@ export default function Navigation() {
                       <User className="w-4 h-4 mr-2" />
                       Профиль
                     </Link>
+                    <Link
+                      href="/events"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      События
+                    </Link>
+                    {user?.role?.name === 'admin' && (
+                      <Link
+                        href="/admin/users"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowMenu(false)}
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Управление пользователями
+                      </Link>
+                    )}
                     <Link
                       href="/settings"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
