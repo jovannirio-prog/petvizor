@@ -16,7 +16,7 @@ function NavigationWrapper({ children }: NavigationWrapperProps) {
     <div className={`min-h-screen ${isHomePage ? 'bg-gradient-to-br from-blue-50 to-indigo-100' : 'bg-gray-50'}`}>
       <Navigation />
       {children && (
-        <main className={`${isHomePage ? '' : 'pt-24 pb-8 px-4 sm:px-6 lg:px-8'}`}>
+        <main className={`${isHomePage ? '' : 'pt-20 pb-8 px-4 sm:px-6 lg:px-8'}`}>
           {children}
         </main>
       )}

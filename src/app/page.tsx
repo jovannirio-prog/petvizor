@@ -1,73 +1,150 @@
 'use client'
 
 import NavigationWrapper from '@/components/NavigationWrapper'
-import { QrCode, Brain, Search, BookOpen, Package, Heart } from 'lucide-react'
+import { Brain, Shield, Heart, Zap, MessageCircle, QrCode } from 'lucide-react'
 import Link from 'next/link'
 
 export default function Home() {
   return (
     <NavigationWrapper>
       {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-8">
-              PetVizor
-            </h1>
-            <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
-              Умная система для управления профилями домашних животных с QR-кодами и AI-консультациями
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="/register"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Начать бесплатно
-              </a>
-              <a
-                href="/about"
-                className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-colors"
-              >
-                Узнать больше
-              </a>
+      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-20">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Content */}
+            <div className="text-left space-y-8">
+              <div className="space-y-4">
+                <h1 className="text-5xl sm:text-7xl font-bold text-gray-900 leading-tight">
+                  PetVizor
+                </h1>
+                <p className="text-2xl sm:text-3xl font-semibold text-blue-600">
+                  AI помощник для владельцев домашних животных
+                </p>
+              </div>
+              
+              <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-2xl">
+                Интеллектуальная система с встроенными сервисами для безопасности, здоровья и содержания питомцев. 
+                Получайте персональные рекомендации от AI-консультанта на основе базы знаний ветеринарных специалистов.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <a
+                  href="/register"
+                  className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                >
+                  Начать бесплатно
+                </a>
+                <a
+                  href="/ai-consultation"
+                  className="bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                >
+                  Попробовать AI
+                </a>
+              </div>
+            </div>
+            
+            {/* Screenshot/Image */}
+            <div className="relative">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 shadow-2xl">
+                <div className="bg-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Brain className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">AI Консультант</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Задайте вопрос о здоровье питомца и получите профессиональный совет
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
+      {/* Features Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Возможности платформы
-          </h2>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Встроенные сервисы для ваших питомцев
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Все необходимое для заботы о здоровье и безопасности ваших любимцев в одном месте
+            </p>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V6a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1zm12 0h2a1 1 0 001-1V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v1a1 1 0 001 1zM5 20h2a1 1 0 001-1v-1a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1z" />
-                </svg>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-6">
+                <Brain className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">QR-коды для питомцев</h3>
-              <p className="text-gray-600">Создавайте уникальные QR-коды для каждого питомца с полной информацией</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">AI Консультант</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Получайте персональные рекомендации по уходу, питанию и лечению от интеллектуального помощника
+              </p>
             </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
+            
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-2xl hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center mb-6">
+                <Shield className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">AI-консультации</h3>
-              <p className="text-gray-600">Получайте профессиональные советы по уходу за питомцами</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Безопасность</h3>
+              <p className="text-gray-600 leading-relaxed">
+                QR-коды для быстрой идентификации питомцев и экстренной связи с владельцами
+              </p>
             </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+            
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-2xl hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mb-6">
+                <Heart className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Безопасность данных</h3>
-              <p className="text-gray-600">Ваши данные защищены современными технологиями шифрования</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Здоровье</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Отслеживание вакцинаций, прививок и медицинских процедур с напоминаниями
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-8 rounded-2xl hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-orange-600 rounded-2xl flex items-center justify-center mb-6">
+                <Zap className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Рекомендации</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Персональные советы по содержанию, питанию и активности на основе породы и возраста
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-8 rounded-2xl hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mb-6">
+                <MessageCircle className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Экстренная помощь</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Быстрая связь с ветеринарами и инструкции по первой помощи в критических ситуациях
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-8 rounded-2xl hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+                <QrCode className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Управление профилями</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Создавайте и управляйте профилями всех ваших питомцев с полной историей
+              </p>
             </div>
           </div>
         </div>
