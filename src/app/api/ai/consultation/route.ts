@@ -237,6 +237,7 @@ export async function POST(request: Request) {
          console.log('⚠️ AI Consultation: Сохранение в БД временно отключено')
 
     console.log('✅ AI Consultation: Ответ сгенерирован')
+    console.log('🔍 AI Consultation: Проверяем relevantKnowledge:', relevantKnowledge)
     console.log('🔍 AI Consultation: Начинаем формирование источников, relevantKnowledge.length:', relevantKnowledge.length)
 
     // Формируем список кодов использованных записей с заголовками
