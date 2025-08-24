@@ -46,6 +46,8 @@ export default function AIConsultationPage() {
   }, [pets, petsLoading])
 
   const handleAIResponse = (data: any) => {
+    console.log('🔍 AI Consultation UI: Получен ответ от API:', data)
+    
     // Сохраняем sessionId для продолжения диалога
     if (data.sessionId && !sessionId) {
       setSessionId(data.sessionId)
@@ -63,17 +65,25 @@ export default function AIConsultationPage() {
     if (data.sources) {
       // Используем новое поле sources из API
       const sourceLines = data.sources.split('\n').filter((line: string) => line.trim())
+      console.log('🔍 AI Consultation UI: Обрабатываем sources:', { 
+        dataSources: data.sources, 
+        sourceLines, 
+        count: sourceLines.length 
+      })
       sources = {
         count: sourceLines.length,
         codes: data.sources
       }
     } else if (data.context && data.context.relevantKnowledgeFound > 0) {
       // Fallback на старый формат
+      console.log('🔍 AI Consultation UI: Используем fallback sources:', data.context)
       sources = {
         count: data.context.relevantKnowledgeFound,
         codes: data.context.usedRecordCodes || 'Коды не найдены'
       }
     }
+    
+    console.log('🔍 AI Consultation UI: Финальные sources:', sources)
     
     const aiMessage: Message = {
       id: (Date.now() + 1).toString(),

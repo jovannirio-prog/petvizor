@@ -242,7 +242,7 @@ export async function POST(request: Request) {
     const usedRecordCodes = relevantKnowledge.map(record => {
       const id = record.ID || 'Unknown'
       // Проверяем разные варианты названия поля заголовка
-      const title = record.Заголовок || record['Заголовок'] || record.title || record.Title || 'Без названия'
+      const title = record['Заголовок'] || record.Заголовок || record.title || record.Title || 'Без названия'
       console.log('🔍 AI Consultation: Формируем источник:', { 
         id, 
         title, 
