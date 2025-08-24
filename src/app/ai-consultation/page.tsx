@@ -60,7 +60,15 @@ export default function AIConsultationPage() {
     
     // Подготавливаем информацию об источниках отдельно
     let sources = undefined
-    if (data.context && data.context.relevantKnowledgeFound > 0) {
+    if (data.sources) {
+      // Используем новое поле sources из API
+      const sourceLines = data.sources.split('\n').filter((line: string) => line.trim())
+      sources = {
+        count: sourceLines.length,
+        codes: data.sources
+      }
+    } else if (data.context && data.context.relevantKnowledgeFound > 0) {
+      // Fallback на старый формат
       sources = {
         count: data.context.relevantKnowledgeFound,
         codes: data.context.usedRecordCodes || 'Коды не найдены'

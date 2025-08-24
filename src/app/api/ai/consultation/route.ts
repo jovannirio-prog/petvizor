@@ -248,6 +248,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       response: aiResponse,
       sessionId: sessionId || `session_${Date.now()}`,
+      sources: relevantKnowledge.length > 0 ? usedRecordCodes : null,
       context: {
         userRole: userRole,
         knowledgeBaseSize: knowledgeBase.length,
