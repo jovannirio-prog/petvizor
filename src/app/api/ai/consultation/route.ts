@@ -237,6 +237,7 @@ export async function POST(request: Request) {
          console.log('⚠️ AI Consultation: Сохранение в БД временно отключено')
 
     console.log('✅ AI Consultation: Ответ сгенерирован')
+    console.log('🔍 AI Consultation: Начинаем формирование источников, relevantKnowledge.length:', relevantKnowledge.length)
 
     // Формируем список кодов использованных записей с заголовками
     const usedRecordCodes = relevantKnowledge.map(record => {
@@ -254,6 +255,7 @@ export async function POST(request: Request) {
     }).join('\n')
     
     console.log('🔍 AI Consultation: Сформированные источники:', usedRecordCodes)
+    console.log('🔍 AI Consultation: Отправляем ответ с sources:', relevantKnowledge.length > 0 ? usedRecordCodes : null)
     
     return NextResponse.json({ 
       response: aiResponse,
