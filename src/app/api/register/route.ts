@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendEmail, createRegistrationNotificationEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -128,6 +129,34 @@ export async function POST(request: NextRequest) {
       console.error('❌ API Register: Ошибка при создании профиля:', profileError)
       // Не возвращаем ошибку, так как пользователь уже создан в Auth
       console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
+    }
+
+    // Отправляем уведомление о новой регистрации
+    try {
+      console.log('📧 API Register: Отправляем уведомление о новой регистрации')
+      const notificationEmail = createRegistrationNotificationEmail({
+        email: data.user.email || email,
+        full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
+        created_at: new Date().toISOString()
+      })
+
+      const emailResult = await sendEmail({
+        to: 'ivan@leovet24.ru',
+        subject: notificationEmail.subject,
+        html: notificationEmail.html
+      })
+
+      if (emailResult.success) {
+        console.log('✅ API Register: Уведомление о регистрации отправлено успешно')
+      } else {
+        console.error('❌ API Register: Ошибка отправки уведомления:', emailResult.error)
+        // Не возвращаем ошибку, так как регистрация прошла успешно
+        console.log('⚠️ API Register: Уведомление не отправлено, но регистрация успешна')
+      }
+    } catch (emailError) {
+      console.error('❌ API Register: Ошибка при отправке уведомления:', emailError)
+      // Не возвращаем ошибку, так как регистрация прошла успешно
+      console.log('⚠️ API Register: Уведомление не отправлено, но регистрация успешна')
     }
     
     return NextResponse.json({
