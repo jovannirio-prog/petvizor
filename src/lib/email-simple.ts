@@ -4,62 +4,54 @@ interface EmailData {
   html: string
 }
 
-export async function sendEmail({ to, subject, html }: EmailData) {
+export async function sendEmailSimple({ to, subject, html }: EmailData) {
   try {
-    console.log('📧 Email: Начало отправки email')
-    console.log('📧 Email: SMTP_HOST:', process.env.SMTP_HOST)
-    console.log('📧 Email: SMTP_PORT:', process.env.SMTP_PORT)
-    console.log('📧 Email: SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_FROM:', process.env.SMTP_FROM)
-    console.log('📧 Email: Получатель:', to)
-    console.log('📧 Email: Тема:', subject)
+    console.log('📧 Simple Email: Начало отправки email')
+    console.log('📧 Simple Email: Получатель:', to)
+    console.log('📧 Simple Email: Тема:', subject)
+    console.log('📧 Simple Email: SMTP настройки:')
+    console.log('  - SMTP_HOST:', process.env.SMTP_HOST)
+    console.log('  - SMTP_PORT:', process.env.SMTP_PORT)
+    console.log('  - SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
+    console.log('  - SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
 
     // Проверяем наличие обязательных переменных
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       throw new Error('SMTP_USER или SMTP_PASS не настроены')
     }
 
-    // Динамический импорт nodemailer
-    console.log('📧 Email: Импортируем nodemailer...')
-    const nodemailerModule = await import('nodemailer')
-    console.log('📧 Email: nodemailer импортирован:', !!nodemailerModule)
+    // Отправляем email через Resend (бесплатный сервис)
+    console.log('📧 Simple Email: Отправляем email через Resend...')
     
-    // Получаем createTransporter из модуля
-    const createTransporter = nodemailerModule.default || nodemailerModule.createTransporter
-    console.log('📧 Email: createTransporter доступен:', !!createTransporter)
-
-    // Создаем транспортер для отправки email
-    const transporter = createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true для 465, false для других портов
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY || 're_test_key'}`,
+        'Content-Type': 'application/json',
       },
-      debug: true, // Включаем отладку
-      logger: true, // Включаем логирование
+      body: JSON.stringify({
+        from: 'PetVizor <noreply@petvizor.com>',
+        to: [to],
+        subject: subject,
+        html: html,
+      })
     })
-
-    console.log('📧 Email: Транспортер создан, отправляем email...')
-
-    // Отправляем email
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'PetVizor <noreply@petvizor.com>',
-      to,
-      subject,
-      html,
-    })
-
-    console.log('📧 Email отправлен успешно:', info.messageId)
-    return { success: true, messageId: info.messageId }
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.log('📧 Simple Email: Ошибка Resend API:', errorText)
+      throw new Error(`Resend API error: ${response.status} ${errorText}`)
+    }
+    
+    const result = await response.json()
+    console.log('📧 Simple Email: Email отправлен успешно через Resend')
+    return { 
+      success: true, 
+      messageId: result.id,
+      note: 'Email отправлен через Resend'
+    }
   } catch (error: any) {
-    console.error('❌ Ошибка отправки email:', error)
-    console.error('❌ Email: Тип ошибки:', error.name)
-    console.error('❌ Email: Сообщение ошибки:', error.message)
-    console.error('❌ Email: Код ошибки:', error.code)
-    console.error('❌ Email: Полная ошибка:', error)
+    console.error('❌ Simple Email: Ошибка отправки email:', error)
     
     return { 
       success: false, 

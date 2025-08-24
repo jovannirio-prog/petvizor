@@ -1,65 +1,52 @@
+import { Resend } from 'resend'
+
 interface EmailData {
   to: string
   subject: string
   html: string
 }
 
-export async function sendEmail({ to, subject, html }: EmailData) {
+export async function sendEmailResend({ to, subject, html }: EmailData) {
   try {
-    console.log('📧 Email: Начало отправки email')
-    console.log('📧 Email: SMTP_HOST:', process.env.SMTP_HOST)
-    console.log('📧 Email: SMTP_PORT:', process.env.SMTP_PORT)
-    console.log('📧 Email: SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_FROM:', process.env.SMTP_FROM)
-    console.log('📧 Email: Получатель:', to)
-    console.log('📧 Email: Тема:', subject)
+    console.log('📧 Resend Email: Начало отправки email')
+    console.log('📧 Resend Email: Получатель:', to)
+    console.log('📧 Resend Email: Тема:', subject)
 
-    // Проверяем наличие обязательных переменных
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      throw new Error('SMTP_USER или SMTP_PASS не настроены')
+    // Проверяем наличие API ключа
+    if (!process.env.RESEND_API_KEY) {
+      console.log('📧 Resend Email: RESEND_API_KEY не настроен, используем тестовый ключ')
     }
 
-    // Динамический импорт nodemailer
-    console.log('📧 Email: Импортируем nodemailer...')
-    const nodemailerModule = await import('nodemailer')
-    console.log('📧 Email: nodemailer импортирован:', !!nodemailerModule)
-    
-    // Получаем createTransporter из модуля
-    const createTransporter = nodemailerModule.default || nodemailerModule.createTransporter
-    console.log('📧 Email: createTransporter доступен:', !!createTransporter)
-
-    // Создаем транспортер для отправки email
-    const transporter = createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true для 465, false для других портов
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      debug: true, // Включаем отладку
-      logger: true, // Включаем логирование
-    })
-
-    console.log('📧 Email: Транспортер создан, отправляем email...')
+    // Инициализируем Resend
+    const resend = new Resend(process.env.RESEND_API_KEY || 're_test_key')
+    console.log('📧 Resend Email: Resend инициализирован')
 
     // Отправляем email
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'PetVizor <noreply@petvizor.com>',
-      to,
-      subject,
-      html,
-    })
+    console.log('📧 Resend Email: Отправляем email...')
+    
+    // В тестовом режиме отправляем на адрес аккаунта
+    const testEmail = 'jovannirio@gmail.com'
+    const actualEmail = to
+    
+    console.log('📧 Resend Email: Тестовый режим - отправляем на:', testEmail)
+    console.log('📧 Resend Email: Реальный получатель:', actualEmail)
+    
+         const data = await resend.emails.send({
+       from: 'noreply@petvizor.com', // Используем ваш верифицированный домен
+       to: [to], // Отправляем на реальный адрес
+       subject: subject,
+       html: html,
+     })
 
-    console.log('📧 Email отправлен успешно:', info.messageId)
-    return { success: true, messageId: info.messageId }
+    console.log('📧 Resend Email: Ответ от Resend:', data)
+    console.log('📧 Resend Email: Email отправлен успешно, ID:', data.id)
+    return { 
+      success: true, 
+      messageId: data.id,
+      note: 'Email отправлен через Resend'
+    }
   } catch (error: any) {
-    console.error('❌ Ошибка отправки email:', error)
-    console.error('❌ Email: Тип ошибки:', error.name)
-    console.error('❌ Email: Сообщение ошибки:', error.message)
-    console.error('❌ Email: Код ошибки:', error.code)
-    console.error('❌ Email: Полная ошибка:', error)
+    console.error('❌ Resend Email: Ошибка отправки email:', error)
     
     return { 
       success: false, 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendEmail, createRegistrationNotificationEmail } from '@/lib/email'
+import { sendEmailResend, createRegistrationNotificationEmail } from '@/lib/email-resend'
 
 export async function POST(request: NextRequest) {
   try {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString()
       })
 
-      const emailResult = await sendEmail({
+              const emailResult = await sendEmailResend({
         to: 'ivan@leovet24.ru',
         subject: notificationEmail.subject,
         html: notificationEmail.html

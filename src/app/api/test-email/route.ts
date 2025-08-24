@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendEmail, createRegistrationNotificationEmail } from '@/lib/email'
+import { sendEmailResend, createRegistrationNotificationEmail } from '@/lib/email-resend'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const notificationEmail = createRegistrationNotificationEmail(testUserData)
 
     // Отправляем тестовый email
-    const emailResult = await sendEmail({
+    const emailResult = await sendEmailResend({
       to: 'ivan@leovet24.ru',
       subject: `[ТЕСТ] ${notificationEmail.subject}`,
       html: notificationEmail.html
@@ -42,7 +42,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Ошибка отправки email',
-        details: emailResult.error
+        details: emailResult.error,
+        smtpConfig: {
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT,
+          user: process.env.SMTP_USER ? 'Настроен' : 'Не настроен',
+          pass: process.env.SMTP_PASS ? 'Настроен' : 'Не настроен',
+          from: process.env.SMTP_FROM
+        }
       }, { status: 500 })
     }
 

@@ -4,62 +4,59 @@ interface EmailData {
   html: string
 }
 
-export async function sendEmail({ to, subject, html }: EmailData) {
+export async function sendEmailGmail({ to, subject, html }: EmailData) {
   try {
-    console.log('📧 Email: Начало отправки email')
-    console.log('📧 Email: SMTP_HOST:', process.env.SMTP_HOST)
-    console.log('📧 Email: SMTP_PORT:', process.env.SMTP_PORT)
-    console.log('📧 Email: SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_FROM:', process.env.SMTP_FROM)
-    console.log('📧 Email: Получатель:', to)
-    console.log('📧 Email: Тема:', subject)
+    console.log('📧 Gmail Email: Начало отправки email')
+    console.log('📧 Gmail Email: Получатель:', to)
+    console.log('📧 Gmail Email: Тема:', subject)
 
-    // Проверяем наличие обязательных переменных
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       throw new Error('SMTP_USER или SMTP_PASS не настроены')
     }
 
-    // Динамический импорт nodemailer
-    console.log('📧 Email: Импортируем nodemailer...')
-    const nodemailerModule = await import('nodemailer')
-    console.log('📧 Email: nodemailer импортирован:', !!nodemailerModule)
+    // Используем Gmail SMTP через fetch
+    console.log('📧 Gmail Email: Отправляем через Gmail SMTP...')
     
-    // Получаем createTransporter из модуля
-    const createTransporter = nodemailerModule.default || nodemailerModule.createTransporter
-    console.log('📧 Email: createTransporter доступен:', !!createTransporter)
+    const emailData = {
+      from: process.env.SMTP_USER,
+      to: to,
+      subject: subject,
+      html: html
+    }
 
-    // Создаем транспортер для отправки email
-    const transporter = createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true для 465, false для других портов
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+    // Создаем SMTP соединение через fetch
+    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GMAIL_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
       },
-      debug: true, // Включаем отладку
-      logger: true, // Включаем логирование
+      body: JSON.stringify({
+        raw: btoa(
+          `From: ${emailData.from}\r\n` +
+          `To: ${emailData.to}\r\n` +
+          `Subject: ${emailData.subject}\r\n` +
+          `Content-Type: text/html; charset=UTF-8\r\n` +
+          `\r\n` +
+          `${emailData.html}`
+        ).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+      })
     })
 
-    console.log('📧 Email: Транспортер создан, отправляем email...')
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Gmail API error: ${response.status} ${errorText}`)
+    }
 
-    // Отправляем email
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'PetVizor <noreply@petvizor.com>',
-      to,
-      subject,
-      html,
-    })
-
-    console.log('📧 Email отправлен успешно:', info.messageId)
-    return { success: true, messageId: info.messageId }
+    const result = await response.json()
+    console.log('📧 Gmail Email: Email отправлен успешно:', result.id)
+    return { 
+      success: true, 
+      messageId: result.id,
+      note: 'Email отправлен через Gmail API'
+    }
   } catch (error: any) {
-    console.error('❌ Ошибка отправки email:', error)
-    console.error('❌ Email: Тип ошибки:', error.name)
-    console.error('❌ Email: Сообщение ошибки:', error.message)
-    console.error('❌ Email: Код ошибки:', error.code)
-    console.error('❌ Email: Полная ошибка:', error)
+    console.error('❌ Gmail Email: Ошибка отправки email:', error)
     
     return { 
       success: false, 

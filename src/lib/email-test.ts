@@ -4,62 +4,41 @@ interface EmailData {
   html: string
 }
 
-export async function sendEmail({ to, subject, html }: EmailData) {
+export async function sendEmailTest({ to, subject, html }: EmailData) {
   try {
-    console.log('📧 Email: Начало отправки email')
-    console.log('📧 Email: SMTP_HOST:', process.env.SMTP_HOST)
-    console.log('📧 Email: SMTP_PORT:', process.env.SMTP_PORT)
-    console.log('📧 Email: SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_FROM:', process.env.SMTP_FROM)
-    console.log('📧 Email: Получатель:', to)
-    console.log('📧 Email: Тема:', subject)
+    console.log('📧 Test Email: Начало отправки email')
+    console.log('📧 Test Email: Получатель:', to)
+    console.log('📧 Test Email: Тема:', subject)
+    console.log('📧 Test Email: SMTP настройки:')
+    console.log('  - SMTP_HOST:', process.env.SMTP_HOST)
+    console.log('  - SMTP_PORT:', process.env.SMTP_PORT)
+    console.log('  - SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
+    console.log('  - SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
 
     // Проверяем наличие обязательных переменных
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       throw new Error('SMTP_USER или SMTP_PASS не настроены')
     }
 
-    // Динамический импорт nodemailer
-    console.log('📧 Email: Импортируем nodemailer...')
-    const nodemailerModule = await import('nodemailer')
-    console.log('📧 Email: nodemailer импортирован:', !!nodemailerModule)
+    // Имитируем отправку email (для тестирования)
+    console.log('📧 Test Email: Имитация отправки email...')
+    console.log('📧 Test Email: Email должен быть отправлен на:', to)
+    console.log('📧 Test Email: Тема:', subject)
+    console.log('📧 Test Email: HTML содержимое:', html.substring(0, 200) + '...')
     
-    // Получаем createTransporter из модуля
-    const createTransporter = nodemailerModule.default || nodemailerModule.createTransporter
-    console.log('📧 Email: createTransporter доступен:', !!createTransporter)
-
-    // Создаем транспортер для отправки email
-    const transporter = createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true для 465, false для других портов
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      debug: true, // Включаем отладку
-      logger: true, // Включаем логирование
-    })
-
-    console.log('📧 Email: Транспортер создан, отправляем email...')
-
-    // Отправляем email
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'PetVizor <noreply@petvizor.com>',
-      to,
-      subject,
-      html,
-    })
-
-    console.log('📧 Email отправлен успешно:', info.messageId)
-    return { success: true, messageId: info.messageId }
+    // Имитируем задержку
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    console.log('📧 Test Email: Email "отправлен" успешно (тестовая имитация)')
+    console.log('📧 Test Email: В реальной системе email был бы отправлен на ivan@leovet24.ru')
+    
+    return { 
+      success: true, 
+      messageId: `test-${Date.now()}`,
+      note: 'Это тестовая имитация отправки email. В реальной системе email был бы отправлен.'
+    }
   } catch (error: any) {
-    console.error('❌ Ошибка отправки email:', error)
-    console.error('❌ Email: Тип ошибки:', error.name)
-    console.error('❌ Email: Сообщение ошибки:', error.message)
-    console.error('❌ Email: Код ошибки:', error.code)
-    console.error('❌ Email: Полная ошибка:', error)
+    console.error('❌ Test Email: Ошибка отправки email:', error)
     
     return { 
       success: false, 

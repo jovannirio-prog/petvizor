@@ -4,45 +4,39 @@ interface EmailData {
   html: string
 }
 
-export async function sendEmail({ to, subject, html }: EmailData) {
+export async function sendEmailFixed({ to, subject, html }: EmailData) {
   try {
-    console.log('📧 Email: Начало отправки email')
-    console.log('📧 Email: SMTP_HOST:', process.env.SMTP_HOST)
-    console.log('📧 Email: SMTP_PORT:', process.env.SMTP_PORT)
-    console.log('📧 Email: SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
-    console.log('📧 Email: SMTP_FROM:', process.env.SMTP_FROM)
-    console.log('📧 Email: Получатель:', to)
-    console.log('📧 Email: Тема:', subject)
+    console.log('📧 Fixed Email: Начало отправки email')
+    console.log('📧 Fixed Email: SMTP_HOST:', process.env.SMTP_HOST)
+    console.log('📧 Fixed Email: SMTP_PORT:', process.env.SMTP_PORT)
+    console.log('📧 Fixed Email: SMTP_USER:', process.env.SMTP_USER ? 'Настроен' : 'Не настроен')
+    console.log('📧 Fixed Email: SMTP_PASS:', process.env.SMTP_PASS ? 'Настроен' : 'Не настроен')
+    console.log('📧 Fixed Email: Получатель:', to)
+    console.log('📧 Fixed Email: Тема:', subject)
 
-    // Проверяем наличие обязательных переменных
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       throw new Error('SMTP_USER или SMTP_PASS не настроены')
     }
 
-    // Динамический импорт nodemailer
-    console.log('📧 Email: Импортируем nodemailer...')
-    const nodemailerModule = await import('nodemailer')
-    console.log('📧 Email: nodemailer импортирован:', !!nodemailerModule)
-    
-    // Получаем createTransporter из модуля
-    const createTransporter = nodemailerModule.default || nodemailerModule.createTransporter
-    console.log('📧 Email: createTransporter доступен:', !!createTransporter)
+    // Используем require для nodemailer
+    console.log('📧 Fixed Email: Загружаем nodemailer...')
+    const nodemailer = require('nodemailer')
+    console.log('📧 Fixed Email: nodemailer загружен:', !!nodemailer)
 
-    // Создаем транспортер для отправки email
-    const transporter = createTransporter({
+    // Создаем транспортер
+    const transporter = nodemailer.createTransporter({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true для 465, false для других портов
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      debug: true, // Включаем отладку
-      logger: true, // Включаем логирование
+      debug: true,
+      logger: true,
     })
 
-    console.log('📧 Email: Транспортер создан, отправляем email...')
+    console.log('📧 Fixed Email: Транспортер создан, отправляем email...')
 
     // Отправляем email
     const info = await transporter.sendMail({
@@ -52,14 +46,14 @@ export async function sendEmail({ to, subject, html }: EmailData) {
       html,
     })
 
-    console.log('📧 Email отправлен успешно:', info.messageId)
+    console.log('📧 Fixed Email: Email отправлен успешно:', info.messageId)
     return { success: true, messageId: info.messageId }
   } catch (error: any) {
-    console.error('❌ Ошибка отправки email:', error)
-    console.error('❌ Email: Тип ошибки:', error.name)
-    console.error('❌ Email: Сообщение ошибки:', error.message)
-    console.error('❌ Email: Код ошибки:', error.code)
-    console.error('❌ Email: Полная ошибка:', error)
+    console.error('❌ Fixed Email: Ошибка отправки email:', error)
+    console.error('❌ Fixed Email: Тип ошибки:', error.name)
+    console.error('❌ Fixed Email: Сообщение ошибки:', error.message)
+    console.error('❌ Fixed Email: Код ошибки:', error.code)
+    console.error('❌ Fixed Email: Полная ошибка:', error)
     
     return { 
       success: false, 
