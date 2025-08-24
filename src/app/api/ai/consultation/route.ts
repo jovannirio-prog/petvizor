@@ -241,9 +241,19 @@ export async function POST(request: Request) {
     // Формируем список кодов использованных записей с заголовками
     const usedRecordCodes = relevantKnowledge.map(record => {
       const id = record.ID || 'Unknown'
-      const title = record.Заголовок || record.Заголовок || 'Без названия'
+      // Проверяем разные варианты названия поля заголовка
+      const title = record.Заголовок || record['Заголовок'] || record.title || record.Title || 'Без названия'
+      console.log('🔍 AI Consultation: Формируем источник:', { 
+        id, 
+        title, 
+        availableFields: Object.keys(record),
+        заголовок: record.Заголовок,
+        'Заголовок': record['Заголовок']
+      })
       return `${id}: ${title}`
     }).join('\n')
+    
+    console.log('🔍 AI Consultation: Сформированные источники:', usedRecordCodes)
     
     return NextResponse.json({ 
       response: aiResponse,
