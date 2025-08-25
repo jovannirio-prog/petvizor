@@ -25,12 +25,12 @@ export async function sendEmail({ to, subject, html }: EmailData) {
     const nodemailerModule = await import('nodemailer')
     console.log('📧 Email: nodemailer импортирован:', !!nodemailerModule)
     
-    // Получаем createTransporter из модуля
-    const createTransporter = nodemailerModule.default || nodemailerModule.createTransporter
-    console.log('📧 Email: createTransporter доступен:', !!createTransporter)
+    // Получаем createTransport из модуля
+    const createTransport = nodemailerModule.default || nodemailerModule.createTransport
+    console.log('📧 Email: createTransport доступен:', !!createTransport)
 
     // Создаем транспортер для отправки email
-    const transporter = createTransporter({
+    const transporter = createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false, // true для 465, false для других портов
