@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
     const supabase = createClient()
 
     console.log('🔑 API Register: Пытаемся зарегистрировать пользователя')
+    console.log('🔑 API Register: Email:', email)
+    console.log('🔑 API Register: Full name:', full_name)
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -49,6 +52,16 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+    
+    console.log('🔑 API Register: Результат signUp - data:', !!data)
+    console.log('🔑 API Register: Результат signUp - error:', !!error)
+    if (error) {
+      console.log('🔑 API Register: Error details:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      })
+    }
 
     if (error) {
       console.error('❌ API Register: Ошибка регистрации:', error)
@@ -106,30 +119,63 @@ export async function POST(request: NextRequest) {
     // Создаем профиль пользователя в таблице profiles
     try {
       console.log('🔧 API Register: Создаем профиль пользователя')
-      const { error: profileError } = await supabase
+      console.log('🔧 API Register: User ID:', data.user.id)
+      console.log('🔧 API Register: User email:', data.user.email)
+      
+      // Сначала проверяем, существует ли уже профиль
+      const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: data.user.email,
-          full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-
-      if (profileError) {
-        console.error('❌ API Register: Ошибка создания профиля:', profileError)
-        console.error('❌ API Register: Код ошибки профиля:', profileError.code)
-        console.error('❌ API Register: Детали ошибки профиля:', profileError.details)
-        // Не возвращаем ошибку, так как пользователь уже создан в Auth
-        console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
-      } else {
-        console.log('✅ API Register: Профиль пользователя создан успешно')
+        .select('id')
+        .eq('id', data.user.id)
+        .single()
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('❌ API Register: Ошибка проверки существующего профиля:', checkError)
       }
-    } catch (profileError) {
-      console.error('❌ API Register: Ошибка при создании профиля:', profileError)
-      // Не возвращаем ошибку, так как пользователь уже создан в Auth
-      console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
-    }
+      
+      if (existingProfile) {
+        console.log('⚠️ API Register: Профиль уже существует, обновляем')
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            email: data.user.email,
+            full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', data.user.id)
+        
+        if (updateError) {
+          console.error('❌ API Register: Ошибка обновления профиля:', updateError)
+        } else {
+          console.log('✅ API Register: Профиль пользователя обновлен успешно')
+        }
+               } else {
+           console.log('🔧 API Register: Создаем новый профиль')
+           const { error: profileError } = await supabase
+             .from('profiles')
+             .insert({
+               id: data.user.id,
+               email: data.user.email,
+               full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
+               created_at: new Date().toISOString(),
+               updated_at: new Date().toISOString()
+             })
+
+           if (profileError) {
+             console.error('❌ API Register: Ошибка создания профиля:', profileError)
+             console.error('❌ API Register: Код ошибки профиля:', profileError.code)
+             console.error('❌ API Register: Детали ошибки профиля:', profileError.details)
+             // Не возвращаем ошибку, так как пользователь уже создан в Auth
+             console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
+                       } else {
+              console.log('✅ API Register: Профиль пользователя создан успешно')
+            }
+          }
+        } catch (profileError) {
+          console.error('❌ API Register: Ошибка при создании профиля:', profileError)
+          // Не возвращаем ошибку, так как пользователь уже создан в Auth
+          console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
+        }
 
     // Отправляем уведомление о новой регистрации
     try {
