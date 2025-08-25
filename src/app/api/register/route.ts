@@ -116,6 +116,65 @@ export async function POST(request: NextRequest) {
     console.log('🔍 API Register: access_token length:', data.session?.access_token?.length)
     console.log('🔍 API Register: refresh_token length:', data.session?.refresh_token?.length)
     
+    // Создаем запись пользователя в таблице users
+    try {
+      console.log('🔧 API Register: Создаем запись пользователя в таблице users')
+      console.log('🔧 API Register: User ID:', data.user.id)
+      console.log('🔧 API Register: User email:', data.user.email)
+      
+      // Сначала проверяем, существует ли уже запись в users
+      const { data: existingUser, error: checkUserError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', data.user.id)
+        .single()
+      
+      if (checkUserError && checkUserError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('❌ API Register: Ошибка проверки существующего пользователя:', checkUserError)
+      }
+      
+      if (existingUser) {
+        console.log('⚠️ API Register: Пользователь уже существует в таблице users, обновляем')
+        const { error: updateUserError } = await supabase
+          .from('users')
+          .update({
+            email: data.user.email,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', data.user.id)
+        
+        if (updateUserError) {
+          console.error('❌ API Register: Ошибка обновления пользователя:', updateUserError)
+        } else {
+          console.log('✅ API Register: Пользователь обновлен в таблице users успешно')
+        }
+      } else {
+        console.log('🔧 API Register: Создаем нового пользователя в таблице users')
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+
+        if (userError) {
+          console.error('❌ API Register: Ошибка создания пользователя:', userError)
+          console.error('❌ API Register: Код ошибки пользователя:', userError.code)
+          console.error('❌ API Register: Детали ошибки пользователя:', userError.details)
+          // Не возвращаем ошибку, так как пользователь уже создан в Auth
+          console.log('⚠️ API Register: Пользователь не создан в таблице users, но зарегистрирован в Auth')
+        } else {
+          console.log('✅ API Register: Пользователь создан в таблице users успешно')
+        }
+      }
+    } catch (userError) {
+      console.error('❌ API Register: Ошибка при создании пользователя:', userError)
+      // Не возвращаем ошибку, так как пользователь уже создан в Auth
+      console.log('⚠️ API Register: Пользователь не создан в таблице users, но зарегистрирован в Auth')
+    }
+
     // Создаем профиль пользователя в таблице profiles
     try {
       console.log('🔧 API Register: Создаем профиль пользователя')
@@ -149,33 +208,33 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('✅ API Register: Профиль пользователя обновлен успешно')
         }
-               } else {
-           console.log('🔧 API Register: Создаем новый профиль')
-           const { error: profileError } = await supabase
-             .from('profiles')
-             .insert({
-               id: data.user.id,
-               email: data.user.email,
-               full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
-               created_at: new Date().toISOString(),
-               updated_at: new Date().toISOString()
-             })
+      } else {
+        console.log('🔧 API Register: Создаем новый профиль')
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
 
-           if (profileError) {
-             console.error('❌ API Register: Ошибка создания профиля:', profileError)
-             console.error('❌ API Register: Код ошибки профиля:', profileError.code)
-             console.error('❌ API Register: Детали ошибки профиля:', profileError.details)
-             // Не возвращаем ошибку, так как пользователь уже создан в Auth
-             console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
-                       } else {
-              console.log('✅ API Register: Профиль пользователя создан успешно')
-            }
-          }
-        } catch (profileError) {
-          console.error('❌ API Register: Ошибка при создании профиля:', profileError)
+        if (profileError) {
+          console.error('❌ API Register: Ошибка создания профиля:', profileError)
+          console.error('❌ API Register: Код ошибки профиля:', profileError.code)
+          console.error('❌ API Register: Детали ошибки профиля:', profileError.details)
           // Не возвращаем ошибку, так как пользователь уже создан в Auth
           console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
+        } else {
+          console.log('✅ API Register: Профиль пользователя создан успешно')
         }
+      }
+    } catch (profileError) {
+      console.error('❌ API Register: Ошибка при создании профиля:', profileError)
+      // Не возвращаем ошибку, так как пользователь уже создан в Auth
+      console.log('⚠️ API Register: Профиль не создан, но пользователь зарегистрирован')
+    }
 
     // Отправляем уведомление о новой регистрации
     try {
