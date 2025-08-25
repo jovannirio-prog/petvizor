@@ -13,7 +13,8 @@ import {
   Clock,
   CheckCircle,
   X,
-  Save
+  Save,
+  PawPrint
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -313,10 +314,10 @@ export default function PetEventsPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100">
       <NavigationWrapper />
       
-      <div className="max-w-4xl mx-auto p-4 pt-8">
+      <div className="max-w-4xl mx-auto p-4 pt-24">
         {/* Заголовок */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">

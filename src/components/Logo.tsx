@@ -13,7 +13,7 @@ export default function Logo({ className = "h-12" }: LogoProps) {
       alt="PetVizor Logo"
       width={200}
       height={50}
-      className={className}
+      className={`${className} w-auto`}
       priority
     />
   )

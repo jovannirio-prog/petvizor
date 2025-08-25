@@ -54,10 +54,15 @@ export default function PetPage({ params }: { params: { id: string } }) {
   }, [user, loading, router])
 
   useEffect(() => {
-    if (user && params.id) {
-      loadPet()
+    if (params.id) {
+      if (user) {
+        loadPet()
+      } else if (!loading) {
+        // Если пользователь не авторизован и загрузка завершена, сбрасываем loadingPet
+        setLoadingPet(false)
+      }
     }
-  }, [user, params.id])
+  }, [user, loading, params.id])
 
   // Отслеживаем изменения searchParams
   useEffect(() => {
@@ -90,7 +95,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
   // Обновляем данные при фокусе на странице (после возврата с редактирования)
   useEffect(() => {
     const handleFocus = () => {
-      if (user && params.id) {
+      if (user && params.id && !loadingPet) {
         console.log('🔧 Pet Page: Обновляем данные при фокусе')
         loadPet()
       }
@@ -98,15 +103,23 @@ export default function PetPage({ params }: { params: { id: string } }) {
 
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
-  }, [user, params.id])
+  }, [user, params.id, loadingPet])
 
   const loadPet = async () => {
     try {
       console.log('🔧 Pet Page: Загружаем данные питомца:', params.id)
       
+      const token = localStorage.getItem('supabase_access_token')
+      if (!token) {
+        console.error('🔧 Pet Page: Токен не найден')
+        setError('Требуется авторизация')
+        setLoadingPet(false)
+        return
+      }
+      
       const response = await fetch(`/api/pets/${params.id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`
+          'Authorization': `Bearer ${token}`
         }
       })
       
@@ -122,13 +135,20 @@ export default function PetPage({ params }: { params: { id: string } }) {
       } else if (response.status === 404) {
         console.error('🔧 Pet Page: Питомец не найден')
         setError('Питомец не найден')
+      } else if (response.status === 401) {
+        console.error('🔧 Pet Page: Неавторизованный доступ')
+        setError('Требуется авторизация')
       } else {
         console.error('🔧 Pet Page: Ошибка загрузки питомца, статус:', response.status)
         setError('Ошибка загрузки питомца')
       }
     } catch (error) {
       console.error('🔧 Pet Page: Ошибка загрузки питомца:', error)
-      setError('Ошибка загрузки питомца')
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        setError('Ошибка сети. Проверьте подключение к интернету.')
+      } else {
+        setError('Ошибка загрузки питомца')
+      }
     } finally {
       setLoadingPet(false)
     }
@@ -139,14 +159,27 @@ export default function PetPage({ params }: { params: { id: string } }) {
       console.log('🔧 Pet Page: Загружаем профиль владельца:', ownerId)
       setLoadingOwner(true)
       
-      const response = await fetch(`/api/profile/${ownerId}`)
+      const token = localStorage.getItem('supabase_access_token')
+      const headers: Record<string, string> = {}
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      console.log('🔧 Pet Page: Отправляем запрос к /api/profile/${ownerId}')
+      const response = await fetch(`/api/profile/${ownerId}`, {
+        headers
+      })
+      
+      console.log('🔧 Pet Page: Ответ от API профиля, статус:', response.status)
       
       if (response.ok) {
         const data = await response.json()
         console.log('🔧 Pet Page: Получен профиль владельца:', data)
         setOwnerProfile(data)
       } else {
-        console.error('🔧 Pet Page: Ошибка загрузки профиля владельца, статус:', response.status)
+        const errorData = await response.json().catch(() => ({ error: 'Неизвестная ошибка' }))
+        console.error('🔧 Pet Page: Ошибка загрузки профиля владельца, статус:', response.status, 'ошибка:', errorData)
       }
     } catch (error) {
       console.error('🔧 Pet Page: Ошибка загрузки профиля владельца:', error)
@@ -157,7 +190,17 @@ export default function PetPage({ params }: { params: { id: string } }) {
 
   // Загружаем профиль владельца в режиме предварительного просмотра
   useEffect(() => {
+    console.log('🔧 Pet Page: useEffect для загрузки профиля владельца:', {
+      user: !!user,
+      pet: !!pet,
+      petUserId: pet?.user_id,
+      userId: user?.id,
+      isPreviewMode,
+      ownerProfile: !!ownerProfile
+    })
+    
     if (user && pet && pet.user_id === user.id && isPreviewMode && !ownerProfile) {
+      console.log('🔧 Pet Page: Загружаем профиль владельца')
       loadOwnerProfile(pet.user_id)
     }
   }, [user, pet, isPreviewMode, ownerProfile])
@@ -204,26 +247,48 @@ export default function PetPage({ params }: { params: { id: string } }) {
     }
   }
 
-  if (loading || loadingPet || (user && pet && pet.user_id !== user.id && loadingOwner)) {
+  if (loading || (user && loadingPet) || (user && pet && pet.user_id !== user.id && loadingOwner)) {
+    console.log('🔧 Pet Page: Показываем экран загрузки', { loading, user: !!user, loadingPet, loadingOwner })
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
+        <NavigationWrapper />
+        <div className="max-w-4xl mx-auto p-4 flex-1">
+          <div className="text-center py-8">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Загрузка...</p>
+          </div>
         </div>
       </div>
     )
   }
 
-  if (!user) {
-    return null
+  if (!user && !loading) {
+    return (
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
+        <NavigationWrapper />
+        <div className="max-w-4xl mx-auto p-4 flex-1">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <PawPrint className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Требуется авторизация</h1>
+            <p className="text-gray-600 mb-6">Для просмотра питомца необходимо войти в систему</p>
+            <Link
+              href="/login"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Войти в систему
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
         <NavigationWrapper />
-        <div className="max-w-4xl mx-auto p-4 pt-8">
+        <div className="max-w-4xl mx-auto p-4 flex-1">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <PawPrint className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Ошибка</h1>
@@ -243,9 +308,9 @@ export default function PetPage({ params }: { params: { id: string } }) {
 
   if (!pet) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
         <NavigationWrapper />
-        <div className="max-w-4xl mx-auto p-4 pt-8">
+        <div className="max-w-4xl mx-auto p-4 flex-1">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <PawPrint className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Питомец не найден</h1>
@@ -263,11 +328,33 @@ export default function PetPage({ params }: { params: { id: string } }) {
     )
   }
 
+  console.log('🔧 Pet Page: Рендерим основной контент', { 
+    user: !!user, 
+    pet: !!pet, 
+    isPreviewMode,
+    loading,
+    loadingPet,
+    loadingOwner,
+    error
+  })
+  
+  // Отладочная информация для контактной информации
+  console.log('🔧 Pet Page: Условие отображения контактов:', {
+    user: user?.id,
+    petUserId: pet?.user_id,
+    isPreviewMode,
+    shouldShowContacts: ((user && pet.user_id !== user.id) || (user && pet.user_id === user.id && isPreviewMode)),
+    ownerProfile: !!ownerProfile,
+    loadingOwner
+  })
+  
+
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
       <NavigationWrapper />
       
-      <div className="max-w-4xl mx-auto p-4 pt-8">
+      <div className="max-w-4xl mx-auto p-4 pt-24 flex-1">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">
@@ -365,6 +452,51 @@ export default function PetPage({ params }: { params: { id: string } }) {
             {user && pet.user_id === user.id && !isPreviewMode && (
               <PetQRCode petId={pet.id} petName={pet.name} />
             )}
+
+            {/* Owner Contact Info - показываем если пользователь не владелец или в режиме предварительного просмотра */}
+            {/* Debug: user={user?.id}, pet.user_id={pet.user_id}, isPreviewMode={isPreviewMode} */}
+            {((user && pet.user_id !== user.id) || (user && pet.user_id === user.id && isPreviewMode)) && (
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Контактная информация владельца</h2>
+                <div className="space-y-4">
+                  {loadingOwner ? (
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+                      <span className="text-gray-600">Загрузка контактов...</span>
+                    </div>
+                  ) : ownerProfile ? (
+                    <>
+                      <div className="flex items-center">
+                        <User className="h-5 w-5 text-gray-400 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">Имя владельца</p>
+                          <p className="font-medium">{ownerProfile.full_name || 'Не указано'}</p>
+                        </div>
+                      </div>
+                      {ownerProfile.phone && (
+                        <div className="flex items-center">
+                          <Phone className="h-5 w-5 text-gray-400 mr-3" />
+                          <div>
+                            <p className="text-sm text-gray-500">Телефон</p>
+                            <a 
+                              href={`tel:${ownerProfile.phone}`}
+                              className="font-medium text-blue-600 hover:text-blue-800"
+                            >
+                              {ownerProfile.phone}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      <p>Контактная информация недоступна</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Pet Info */}
@@ -414,8 +546,8 @@ export default function PetPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Events - показываем только владельцу питомца */}
-            {user && pet.user_id === user.id && (
+            {/* Events - показываем только владельцу питомца, но не в режиме предварительного просмотра */}
+            {user && pet.user_id === user.id && !isPreviewMode && (
               <PetEvents petId={pet.id} petName={pet.name} />
             )}
 
@@ -435,48 +567,7 @@ export default function PetPage({ params }: { params: { id: string } }) {
               </div>
             )}
 
-            {/* Owner Contact Info - показываем если пользователь не владелец или в режиме предварительного просмотра */}
-            {((user && pet.user_id !== user.id) || (user && pet.user_id === user.id && isPreviewMode)) && (
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Контактная информация владельца</h2>
-                <div className="space-y-4">
-                  {loadingOwner ? (
-                    <div className="flex items-center">
-                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
-                      <span className="text-gray-600">Загрузка контактов...</span>
-                    </div>
-                  ) : ownerProfile ? (
-                    <>
-                      <div className="flex items-center">
-                        <User className="h-5 w-5 text-gray-400 mr-3" />
-                        <div>
-                          <p className="text-sm text-gray-500">Имя владельца</p>
-                          <p className="font-medium">{ownerProfile.full_name || 'Не указано'}</p>
-                        </div>
-                      </div>
-                      {ownerProfile.phone && (
-                        <div className="flex items-center">
-                          <Phone className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <p className="text-sm text-gray-500">Телефон</p>
-                            <a 
-                              href={`tel:${ownerProfile.phone}`}
-                              className="font-medium text-blue-600 hover:text-blue-800"
-                            >
-                              {ownerProfile.phone}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center text-gray-500">
-                      <p>Контактная информация недоступна</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+
           </div>
         </div>
       </div>

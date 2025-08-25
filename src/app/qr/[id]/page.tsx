@@ -111,7 +111,7 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
   if (error) {
     return (
       <NavigationWrapper>
-        <div className="max-w-4xl mx-auto p-4 pt-8">
+        <div className="max-w-4xl mx-auto p-4">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="text-red-600 mb-4">
               <QrCode className="h-16 w-16 mx-auto" />
@@ -153,7 +153,7 @@ export default function PetQRPage({ params }: { params: { id: string } }) {
 
   return (
     <NavigationWrapper>
-      <div className="max-w-6xl mx-auto p-4 pt-8">
+      <div className="max-w-6xl mx-auto p-4">
         <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Заголовок */}
           <div className="flex items-center space-x-4 mb-8">

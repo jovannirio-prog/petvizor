@@ -308,7 +308,7 @@ export default function AIConsultationPage() {
 
   return (
     <NavigationWrapper>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col min-h-screen">
         {/* Header - синий на всю ширину */}
         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-4 sm:py-6">
           <div className="max-w-6xl mx-auto">

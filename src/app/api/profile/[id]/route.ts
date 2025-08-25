@@ -8,12 +8,18 @@ export async function GET(
   try {
     console.log('🔧 API Profile Public: Начало обработки GET запроса для пользователя:', params.id)
     
+    // Временно отключаем проверку аутентификации для отладки
+    // const { data: authUser, error: authError } = await supabase.auth.getUser()
+    // console.log('🔧 API Profile Public: Текущий пользователь:', authUser?.user?.id)
+    
     // Получаем только публичную информацию о профиле
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id, full_name, phone, created_at')
       .eq('id', params.id)
       .single()
+
+    console.log('🔧 API Profile Public: Результат запроса профиля:', { profile, error })
 
     if (error) {
       console.error('🔧 API Profile Public: Ошибка получения профиля:', error)

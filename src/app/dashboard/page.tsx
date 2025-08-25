@@ -252,7 +252,7 @@ export default function DashboardPage() {
 
   return (
     <NavigationWrapper>
-      <div className="max-w-7xl mx-auto p-4 pt-8">
+      <div className="max-w-7xl mx-auto p-4 pt-24">
         {/* Приветствие с настройками */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <div className="flex items-center justify-between">

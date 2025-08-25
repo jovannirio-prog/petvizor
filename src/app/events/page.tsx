@@ -344,7 +344,7 @@ export default function EventsPage() {
 
   return (
     <NavigationWrapper>
-      <div className="max-w-6xl mx-auto p-4 pt-8">
+      <div className="max-w-6xl mx-auto p-4 pt-24">
         {/* Заголовок */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">

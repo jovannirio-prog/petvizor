@@ -130,7 +130,7 @@ export default function NewPetPage() {
 
   return (
     <NavigationWrapper>
-      <div className="max-w-2xl mx-auto p-4 pt-8">
+      <div className="max-w-2xl mx-auto p-4 pt-24">
         {/* Header */}
         <div className="flex items-center mb-8">
           <Link 
