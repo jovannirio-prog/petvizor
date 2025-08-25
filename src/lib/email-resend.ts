@@ -39,10 +39,14 @@ export async function sendEmailResend({ to, subject, html }: EmailData) {
      })
 
     console.log('📧 Resend Email: Ответ от Resend:', data)
-    console.log('📧 Resend Email: Email отправлен успешно, ID:', data.id)
+    
+    // Проверяем структуру ответа
+    const messageId = data?.data?.id || data?.id || 'unknown'
+    console.log('📧 Resend Email: Email отправлен успешно, ID:', messageId)
+    
     return { 
       success: true, 
-      messageId: data.id,
+      messageId: messageId,
       note: 'Email отправлен через Resend'
     }
   } catch (error: any) {
