@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       let errorMessage = error.message || 'Ошибка регистрации'
       let statusCode = 400
       
-      if (error.message.includes('User already registered')) {
+      if (error.message.includes('User already registered') || error.code === 'user_already_exists') {
         errorMessage = 'Пользователь с таким email уже зарегистрирован'
         statusCode = 409
       } else if (error.message.includes('Password should be at least')) {

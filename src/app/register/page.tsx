@@ -73,6 +73,19 @@ export default function RegisterPage() {
         console.error('❌ Register: HTTP ошибка:', response.status, response.statusText)
         const errorText = await response.text()
         console.error('❌ Register: Текст ошибки:', errorText)
+        
+        // Специальная обработка ошибки 409 (пользователь уже существует)
+        if (response.status === 409) {
+          try {
+            const errorData = JSON.parse(errorText)
+            if (errorData.error && errorData.error.includes('уже зарегистрирован')) {
+              throw new Error('USER_EXISTS')
+            }
+          } catch (parseError) {
+            // Если не удалось распарсить JSON, используем общую ошибку
+          }
+        }
+        
         throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`)
       }
 
@@ -97,7 +110,9 @@ export default function RegisterPage() {
       console.error('❌ Register: Стек ошибки:', error.stack)
       
       // Более детальная обработка ошибок
-      if (error.message.includes('fetch')) {
+      if (error.message === 'USER_EXISTS') {
+        setError('Пользователь с таким email уже зарегистрирован. Попробуйте войти в систему.')
+      } else if (error.message.includes('fetch')) {
         setError('Ошибка сети. Проверьте подключение к интернету и настройки Supabase.')
       } else if (error.message.includes('CORS')) {
         setError('Ошибка CORS. Проблема с настройками сервера.')
@@ -221,7 +236,17 @@ export default function RegisterPage() {
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {error}
+                <div className="flex flex-col space-y-3">
+                  <div>{error}</div>
+                  {error.includes('уже зарегистрирован') && (
+                    <Link 
+                      href="/login" 
+                      className="inline-flex items-center justify-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+                    >
+                      Войти в систему
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
 
