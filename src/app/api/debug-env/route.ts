@@ -16,6 +16,12 @@ export async function GET() {
       message: 'Переменные окружения (обновлено)',
       envVars,
       timestamp: new Date().toISOString()
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
   } catch (error) {
     return NextResponse.json({ error: 'Ошибка получения переменных окружения' }, { status: 500 })
