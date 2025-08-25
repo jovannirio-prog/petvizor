@@ -73,6 +73,39 @@ export default function PetsPage() {
     }
   }
 
+  const handleDeletePet = async (petId: string, petName: string) => {
+    if (!confirm(`Вы уверены, что хотите удалить питомца "${petName}"? Это действие нельзя отменить.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/pets/${petId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('supabase_access_token')}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Питомец удален:', result)
+        
+        // Обновляем список питомцев
+        setPets(prevPets => prevPets.filter(pet => pet.id !== petId))
+        
+        // Показываем уведомление об успехе
+        alert(`Питомец "${petName}" успешно удален`)
+      } else {
+        const errorData = await response.json()
+        console.error('Ошибка удаления питомца:', errorData)
+        alert(`Ошибка удаления питомца: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error('Ошибка удаления питомца:', error)
+      alert('Ошибка сети при удалении питомца')
+    }
+  }
+
   const filteredPets = (Array.isArray(pets) ? pets : []).filter(pet => {
     const matchesSearch = pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (pet.breed && pet.breed.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -571,7 +604,7 @@ export default function PetsPage() {
                         <Edit className="h-4 w-4" />
                       </Link>
                       <button
-                        onClick={() => {/* TODO: Delete pet */}}
+                        onClick={() => handleDeletePet(pet.id, pet.name)}
                         className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
