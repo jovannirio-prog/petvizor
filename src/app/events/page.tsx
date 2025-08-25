@@ -14,7 +14,8 @@ import {
   CheckCircle,
   X,
   Save,
-  Bell
+  Bell,
+  PawPrint
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -318,7 +319,25 @@ export default function EventsPage() {
   }
 
   if (!user) {
-    return null
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <NavigationWrapper />
+        <div className="max-w-6xl mx-auto p-4 pt-8">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <PawPrint className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Требуется авторизация</h1>
+            <p className="text-gray-600 mb-6">Для просмотра событий необходимо войти в систему</p>
+            <Link
+              href="/login"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Войти в систему
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const filteredEvents = getFilteredEvents()

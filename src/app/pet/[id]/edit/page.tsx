@@ -227,7 +227,25 @@ export default function EditPetPage({ params }: { params: { id: string } }) {
   }
 
   if (!pet) {
-    return null
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <NavigationWrapper />
+        <div className="max-w-2xl mx-auto p-4 pt-8">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <PawPrint className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Питомец не найден</h1>
+            <p className="text-gray-600 mb-6">Не удалось загрузить данные питомца</p>
+            <Link
+              href="/pets"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Вернуться к списку питомцев
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
