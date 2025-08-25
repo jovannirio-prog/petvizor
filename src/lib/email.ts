@@ -22,15 +22,11 @@ export async function sendEmail({ to, subject, html }: EmailData) {
 
     // Динамический импорт nodemailer
     console.log('📧 Email: Импортируем nodemailer...')
-    const nodemailerModule = await import('nodemailer')
-    console.log('📧 Email: nodemailer импортирован:', !!nodemailerModule)
+    const nodemailer = await import('nodemailer')
+    console.log('📧 Email: nodemailer импортирован:', !!nodemailer)
     
-    // Получаем createTransport из модуля
-    const createTransport = nodemailerModule.default || nodemailerModule.createTransport
-    console.log('📧 Email: createTransport доступен:', !!createTransport)
-
     // Создаем транспортер для отправки email
-    const transporter = createTransport({
+    const transporter = nodemailer.default.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false, // true для 465, false для других портов
