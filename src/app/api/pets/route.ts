@@ -65,6 +65,21 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔧 API Pets: Пользователь авторизован:', user.email)
+    console.log('🔧 API Pets: User ID из Auth:', user.id)
+
+    // Проверяем, существует ли пользователь в таблице users
+    const { data: userRecord, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+
+    if (userError || !userRecord) {
+      console.error('🔧 API Pets: Пользователь не найден в таблице users:', userError)
+      return NextResponse.json({ error: 'Пользователь не найден в базе данных' }, { status: 404 })
+    }
+
+    console.log('🔧 API Pets: Пользователь найден в таблице users:', userRecord.id)
 
     const body = await request.json()
     console.log('🔧 API Pets: Полученные данные:', body)
@@ -75,7 +90,7 @@ export async function POST(request: NextRequest) {
     const { data: pets, error } = await supabase
       .from('pets')
       .insert([{
-        user_id: user.id,
+        user_id: userRecord.id,
         name,
         species,
         breed,
