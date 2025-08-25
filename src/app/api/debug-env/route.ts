@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     return NextResponse.json({ 
-      message: 'Переменные окружения',
+      message: 'Переменные окружения (обновлено)',
       envVars,
       timestamp: new Date().toISOString()
     })
