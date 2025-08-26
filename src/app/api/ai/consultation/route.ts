@@ -317,11 +317,13 @@ export async function POST(request: Request) {
            
            if (saveError) {
              console.error('⚠️ AI Consultation: Ошибка сохранения в БД:', saveError)
+             // Не прерываем выполнение, если сохранение не удалось
            } else {
              console.log('✅ AI Consultation: Сообщение сохранено в БД')
            }
          } catch (saveError) {
            console.error('⚠️ AI Consultation: Ошибка сохранения в БД:', saveError)
+           // Не прерываем выполнение, если сохранение не удалось
          }
 
     console.log('✅ AI Consultation: Ответ сгенерирован')
