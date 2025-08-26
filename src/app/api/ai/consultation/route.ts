@@ -303,9 +303,26 @@ export async function POST(request: Request) {
     // Генерируем ответ через OpenAI API
     const aiResponse = await generateAIResponse(systemPrompt, message, conversationHistory)
 
-         // Временно отключаем сохранение в БД из-за проблем со схемой
-         // TODO: Исправить схему БД для chat_messages
-         console.log('⚠️ AI Consultation: Сохранение в БД временно отключено')
+         // Сохраняем сообщение в базу данных для истории
+         try {
+           const { error: saveError } = await supabase
+             .from('chat_messages')
+             .insert({
+               user_id: user.id,
+               message: message,
+               response: aiResponse,
+               session_id: sessionId || `session_${Date.now()}`,
+               created_at: new Date().toISOString()
+             })
+           
+           if (saveError) {
+             console.error('⚠️ AI Consultation: Ошибка сохранения в БД:', saveError)
+           } else {
+             console.log('✅ AI Consultation: Сообщение сохранено в БД')
+           }
+         } catch (saveError) {
+           console.error('⚠️ AI Consultation: Ошибка сохранения в БД:', saveError)
+         }
 
     console.log('✅ AI Consultation: Ответ сгенерирован')
     console.log('🔍 AI Consultation: Проверяем relevantKnowledge:', relevantKnowledge)
@@ -406,23 +423,61 @@ function searchKnowledgeBase(query: string, knowledgeBase: any[]): any[] {
   
   // Создаем массив с оценкой релевантности для каждой записи
   const scoredResults = knowledgeBase.map(item => {
-    const itemText = Object.values(item).join(' ').toLowerCase()
     let score = 0
+    const itemText = Object.values(item).join(' ').toLowerCase()
+    
+    // Определяем приоритетные поля для поиска в зависимости от таблицы
+    const priorityFields = getPriorityFields(item.table)
     
     // Подсчитываем количество совпадений ключевых слов
     keywords.forEach(keyword => {
+      // Базовые очки за любое совпадение
       if (itemText.includes(keyword)) {
         score += 1
-        // Дополнительные очки за совпадения в заголовке
-        if (item.Заголовок && item.Заголовок.toLowerCase().includes(keyword)) {
-          score += 2
+      }
+      
+      // Дополнительные очки за совпадения в приоритетных полях
+      priorityFields.forEach(field => {
+        if (item[field] && item[field].toString().toLowerCase().includes(keyword)) {
+          score += 5 // Высокий приоритет для точных совпадений
         }
-        // Дополнительные очки за совпадения в ключевых словах
-        if (item['Ключевые слова'] && item['Ключевые слова'].toLowerCase().includes(keyword)) {
-          score += 3
-        }
+      })
+      
+      // Специальные очки за совпадения в ключевых словах
+      if (item.keywords && item.keywords.toLowerCase().includes(keyword)) {
+        score += 3
+      }
+      if (item.intent_keywords && item.intent_keywords.toLowerCase().includes(keyword)) {
+        score += 3
+      }
+      if (item.faq_keywords && item.faq_keywords.toLowerCase().includes(keyword)) {
+        score += 3
       }
     })
+    
+    // Бонусные очки за точные совпадения названий услуг
+    if (item.table === 'pricelist' && item.service_name) {
+      const serviceName = item.service_name.toLowerCase()
+      if (queryLower.includes(serviceName) || serviceName.includes(queryLower)) {
+        score += 10 // Максимальный приоритет для точных совпадений услуг
+      }
+    }
+    
+    // Бонусные очки за совпадения в вопросах FAQ
+    if (item.table === 'faq' && item.question_text) {
+      const questionText = item.question_text.toLowerCase()
+      if (queryLower.includes(questionText) || questionText.includes(queryLower)) {
+        score += 8
+      }
+    }
+    
+    // Бонусные очки за совпадения в симптомах
+    if (item.table === 'situations' && item.user_query) {
+      const userQuery = item.user_query.toLowerCase()
+      if (queryLower.includes(userQuery) || userQuery.includes(queryLower)) {
+        score += 8
+      }
+    }
     
     return { item, score }
   })
@@ -430,20 +485,98 @@ function searchKnowledgeBase(query: string, knowledgeBase: any[]): any[] {
   // Фильтруем записи с совпадениями и сортируем по релевантности
   const results = scoredResults
     .filter(result => result.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5) // Возвращаем топ-5 релевантных записей
+    .sort((a, b) => {
+      // Сначала по релевантности
+      if (b.score !== a.score) {
+        return b.score - a.score
+      }
+      // При равной релевантности приоритет по таблицам
+      const priorityA = getTablePriority(a.item.table)
+      const priorityB = getTablePriority(b.item.table)
+      return priorityA - priorityB
+    })
+    .slice(0, 8) // Увеличиваем количество результатов для лучшего выбора
     .map(result => result.item)
   
   // Логируем найденные совпадения
   if (results.length > 0) {
     console.log('🔍 AI Consultation: Найдено совпадений:', results.length)
     results.forEach((item, index) => {
-      console.log(`🔍 AI Consultation: Совпадение ${index + 1}:`, Object.values(item).join(' ').substring(0, 100) + '...')
+      const title = getItemTitle(item)
+      console.log(`🔍 AI Consultation: Совпадение ${index + 1} (${item.table}): ${title}`)
     })
   }
   
   console.log('🔍 AI Consultation: Итоговое количество найденных записей:', results.length)
   return results
+}
+
+// Функция для определения приоритетных полей поиска
+function getPriorityFields(table: string): string[] {
+  switch (table) {
+    case 'pricelist':
+      return ['service_name', 'service_category', 'service_description']
+    case 'situations':
+      return ['user_query', 'symptom', 'keywords']
+    case 'faq':
+      return ['question_text', 'answer_text', 'faq_category']
+    case 'medications':
+      return ['medication_name', 'active_ingredient', 'indications']
+    case 'animals_breeds':
+      return ['breed', 'species', 'characteristics']
+    case 'preventive_care':
+      return ['procedure_name', 'procedure_description']
+    case 'intents':
+      return ['intent_name', 'intent_keywords']
+    case 'response_template':
+      return ['template_name', 'situation_type']
+    case 'general_info':
+      return ['clinic_name', 'ai_style']
+    default:
+      return ['name', 'title', 'description']
+  }
+}
+
+// Функция для определения приоритета таблиц
+function getTablePriority(table: string): number {
+  const priorities = {
+    'pricelist': 1,      // Высший приоритет для цен
+    'situations': 2,     // Высокий приоритет для симптомов
+    'faq': 3,           // Средний приоритет для FAQ
+    'medications': 4,    // Средний приоритет для препаратов
+    'preventive_care': 5, // Низкий приоритет для профилактики
+    'animals_breeds': 6,  // Низкий приоритет для пород
+    'intents': 7,        // Очень низкий приоритет для намерений
+    'response_template': 8, // Очень низкий приоритет для шаблонов
+    'general_info': 9    // Самый низкий приоритет для общей информации
+  }
+  return priorities[table as keyof typeof priorities] || 10
+}
+
+// Функция для получения заголовка записи
+function getItemTitle(item: any): string {
+  switch (item.table) {
+    case 'pricelist':
+      return item.service_name || 'Услуга'
+    case 'situations':
+      return item.user_query || item.symptom || 'Ситуация'
+    case 'faq':
+      return item.question_text || 'Вопрос'
+    case 'medications':
+      return item.medication_name || 'Препарат'
+    case 'animals_breeds':
+      return item.breed || 'Порода'
+    case 'preventive_care':
+      return item.procedure_name || 'Процедура'
+    case 'intents':
+      return item.intent_name || 'Намерение'
+    case 'response_template':
+      return item.template_name || 'Шаблон'
+    case 'general_info':
+      return item.clinic_name || 'Информация'
+    default:
+      return item.name || item.title || 'Запись'
+  }
 }
 
 // Генерация системного промпта в зависимости от роли
@@ -463,15 +596,23 @@ function generateSystemPrompt(userRole: string, relevantKnowledge: any[], petInf
 
   let prompt = `Ты — ИИ-консультант ветклиники LeoVet. ${roleDesc}.
 
-ПРАВИЛА:
-1. Приоритет базы знаний LeoVet над общими знаниями
-2. Если информации нет в базе знаний, честно скажи об этом
-3. Отвечай кратко и по делу
-4. Учитывай роль пользователя при ответе
-5. Если вопрос не связан с ветеринарией, вежливо перенаправь к специалисту
-6. При экстренных случаях давай четкие инструкции и рекомендуй срочное обращение к врачу
-7. ВАЖНО: Помни весь контекст разговора и ссылайся на предыдущие сообщения
-8. Если пользователь спрашивает "помнишь ли ты...", отвечай на основе истории диалога
+КРИТИЧЕСКИ ВАЖНЫЕ ПРАВИЛА:
+1. ПРИОРИТЕТ БАЗЫ ЗНАНИЙ LEOVET - используй ТОЛЬКО информацию из предоставленной базы знаний
+2. НЕ ИЗОБРЕТАЙ информацию - если чего-то нет в базе, честно скажи "Информации об этом нет в базе знаний"
+3. ПРИ ВОПРОСАХ О ЦЕНАХ - используй ТОЛЬКО данные из таблицы pricelist
+4. ПРИ ВОПРОСАХ О СИМПТОМАХ - используй ТОЛЬКО данные из таблицы situations
+5. ПРИ ВОПРОСАХ О ПРЕПАРАТАХ - используй ТОЛЬКО данные из таблицы medications
+6. ВСЕГДА ПРОВЕРЯЙ актуальность информации перед ответом
+7. ЕСЛИ пользователь поправляет тебя - ЗАПОМНИ это исправление и используй в будущем
+8. КОНТЕКСТ РАЗГОВОРА - анализируй всю историю диалога для понимания контекста
+
+ОБЩИЕ ПРАВИЛА:
+- Отвечай кратко и по делу
+- Учитывай роль пользователя при ответе
+- Если вопрос не связан с ветеринарией, вежливо перенаправь к специалисту
+- При экстренных случаях давай четкие инструкции и рекомендуй срочное обращение к врачу
+- ВАЖНО: Помни весь контекст разговора и ссылайся на предыдущие сообщения
+- Если пользователь спрашивает "помнишь ли ты...", отвечай на основе истории диалога
 
 ${userRole === 'clinic_admin' ? `
 СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ АДМИНИСТРАТОРА ВЕТКЛИНИКИ:
