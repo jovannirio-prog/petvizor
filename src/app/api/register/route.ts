@@ -152,33 +152,8 @@ export async function POST(request: NextRequest) {
       // Не возвращаем ошибку, так как регистрация прошла успешно
     }
 
-    // Отправляем уведомление о новой регистрации
-    try {
-      console.log('📧 API Register: Отправляем уведомление о новой регистрации')
-      const notificationEmail = createRegistrationNotificationEmail({
-        email: data.user.email || email,
-        full_name: full_name || data.user.user_metadata?.full_name || email.split('@')[0],
-        created_at: new Date().toISOString()
-      })
-
-              const emailResult = await sendEmailResend({
-        to: 'ivan@leovet24.ru',
-        subject: notificationEmail.subject,
-        html: notificationEmail.html
-      })
-
-      if (emailResult.success) {
-        console.log('✅ API Register: Уведомление о регистрации отправлено успешно')
-      } else {
-        console.error('❌ API Register: Ошибка отправки уведомления:', emailResult.error)
-        // Не возвращаем ошибку, так как регистрация прошла успешно
-        console.log('⚠️ API Register: Уведомление не отправлено, но регистрация успешна')
-      }
-    } catch (emailError) {
-      console.error('❌ API Register: Ошибка при отправке уведомления:', emailError)
-      // Не возвращаем ошибку, так как регистрация прошла успешно
-      console.log('⚠️ API Register: Уведомление не отправлено, но регистрация успешна')
-    }
+    // Временно отключаем отправку email для отладки
+    console.log('⚠️ API Register: Email уведомления временно отключены для отладки')
     
     return NextResponse.json({
       success: true,
