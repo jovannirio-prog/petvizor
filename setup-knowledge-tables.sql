@@ -6,85 +6,130 @@
 /*
 1. general_info - Общая информация о клинике
    Структура:
-   - name (название клиники)
-   - address (адрес)
-   - phone (телефон)
-   - email (email)
-   - working_hours (часы работы)
-   - ai_style (стиль общения ИИ)
-   - description (описание клиники)
+  
+   - clinic_id
+   - clinic_name
+   - clinic_address
+   - working_hours
+   - contact_phone
+   - emergency_phone
+   - website
+   - ai_greeting_owner
+   - ai_greeting_admin
+   - ai_style
+   - ai_escalation_rules
+
+
 
 2. animals_breeds - Виды и породы животных
    Структура:
-   - species (вид животного: кошка, собака, и т.д.)
-   - breed (порода)
-   - characteristics (характеристики)
-   - health_risks (риски для здоровья)
-   - care_requirements (требования по уходу)
-   - lifespan (продолжительность жизни)
+    - animal_id
+   - species
+   - breed
+   - size_category
+   - average_weght
+   - life_expectancy
+   - common_conditions
+   - special_care_notes
+   - target_audience
+
+
+
 
 3. situations - База симптомов и рекомендаций (ЯДРО СИСТЕМЫ)
    Структура:
-   - symptom (симптом)
-   - description (описание)
-   - possible_causes (возможные причины)
-   - recommendations (рекомендации)
-   - urgency_level (уровень срочности: низкий/средний/высокий)
-   - when_to_contact_vet (когда обращаться к ветеринару)
-   - prevention (профилактика)
+   - situation_id
+   - user_query
+   - keywords
+   - Animal_species
+   - age_category
+   - symptoms_checklist
+   - follow_up_questions
+   - ai_response_owner
+   - ai_response_admin
+   - urgency
+   - urgency_indicators
+   - contraindications
+   - related_services
+   - related_medications
+
+ДАЛЬШЕ НЕ ОТРДЕАКТИРОВАНЫ, НУЖНО ДОБАВИТЬ ТЕ ПОЛЯ, КОТОРЫЕ ФАКТИЧЕСКИ В ТАБЛИЦЕ
+
 
 4. pricelist - Прайс-лист услуг
    Структура:
+   - service_id
    - service_name (название услуги)
-   - category (категория)
+   - service_category (категория услуги)
    - price (цена)
-   - description (описание услуги)
-   - duration (продолжительность)
-   - preparation (подготовка)
+   - price_currency (валюта)
+   - service_description (описание услуги)
+   - duration_minutes (продолжительность в минутах)
+   - preparation_required (требуется ли подготовка)
+   - preparation_instructions (инструкции по подготовке)
+   - is_emergency (экстренная услуга)
+   - is_available (доступна ли услуга)
 
 5. medications - Справочник препаратов
    Структура:
-   - name (название препарата)
+   - medication_id
+   - medication_name (название препарата)
    - active_ingredient (действующее вещество)
    - dosage_form (форма выпуска)
    - indications (показания)
    - contraindications (противопоказания)
-   - dosage (дозировка)
+   - dosage_instructions (инструкции по дозировке)
    - side_effects (побочные эффекты)
+   - storage_conditions (условия хранения)
+   - prescription_required (требуется ли рецепт)
+   - manufacturer (производитель)
 
 6. intents - База намерений пользователей
    Структура:
-   - intent (намерение)
-   - keywords (ключевые слова)
+   - intent_id
+   - intent_name (название намерения)
+   - intent_keywords (ключевые слова)
    - response_template (шаблон ответа)
-   - category (категория)
-   - priority (приоритет)
+   - intent_category (категория намерения)
+   - priority_level (уровень приоритета)
+   - user_type (тип пользователя: owner/admin)
+   - confidence_threshold (порог уверенности)
 
 7. preventive_care - Профилактический уход
    Структура:
+   - procedure_id
    - procedure_name (название процедуры)
-   - frequency (частота)
+   - procedure_frequency (частота проведения)
    - age_group (возрастная группа)
-   - description (описание)
-   - importance (важность)
-   - cost_range (диапазон стоимости)
+   - procedure_description (описание процедуры)
+   - importance_level (уровень важности)
+   - cost_range_min (минимальная стоимость)
+   - cost_range_max (максимальная стоимость)
+   - species_applicable (применимо к видам животных)
+   - preparation_required (требуется ли подготовка)
 
 8. faq - Часто задаваемые вопросы
    Структура:
-   - question (вопрос)
-   - answer (ответ)
-   - category (категория)
-   - keywords (ключевые слова)
+   - faq_id
+   - question_text (текст вопроса)
+   - answer_text (текст ответа)
+   - faq_category (категория вопроса)
+   - faq_keywords (ключевые слова)
    - related_topics (связанные темы)
+   - user_type (тип пользователя: owner/admin)
+   - frequency_asked (частота задавания)
 
 9. response_template - Шаблоны ответов
    Структура:
+   - template_id
    - template_name (название шаблона)
-   - audience (аудитория: владелец/администратор)
-   - situation (ситуация)
+   - target_audience (аудитория: owner/admin)
+   - situation_type (тип ситуации)
    - template_text (текст шаблона)
-   - variables (переменные для подстановки)
-   - tone (тон: формальный/дружелюбный/срочный)
+   - template_variables (переменные для подстановки)
+   - response_tone (тон ответа: formal/friendly/urgent)
+   - is_active (активен ли шаблон)
+   - usage_count (количество использований)
 */
 
 -- 2. Примеры данных для заполнения таблиц:

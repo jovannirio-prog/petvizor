@@ -316,15 +316,54 @@ export async function POST(request: Request) {
       const code = record.code || 'Unknown'
       const tableName = record.table_name || record.table || 'Unknown'
       
-      // Ищем заголовок в различных полях
-      const title = record.title || record.заголовок || record.name || record.название || 
-                   record.symptom || record.симптом || record.question || record.вопрос || 
-                   record.service || record.услуга || 'Без названия'
+      // Определяем заголовок в зависимости от таблицы
+      let title = 'Без названия'
+      
+      switch (record.table) {
+        case 'pricelist':
+          title = record.service_name || record.услуга || record.name || record.название || 'Услуга'
+          break
+        case 'situations':
+          title = record.user_query || record.symptom || record.симптом || record.question || record.вопрос || 'Ситуация'
+          break
+        case 'faq':
+          title = record.question || record.вопрос || record.name || record.название || 'Вопрос'
+          break
+        case 'medications':
+          title = record.name || record.название || record.medication_name || record.препарат || 'Препарат'
+          break
+        case 'animals_breeds':
+          title = record.breed || record.порода || record.species || record.вид || 'Порода'
+          break
+        case 'preventive_care':
+          title = record.procedure_name || record.процедура || record.name || record.название || 'Процедура'
+          break
+        case 'intents':
+          title = record.intent || record.намерение || record.name || record.название || 'Намерение'
+          break
+        case 'response_template':
+          title = record.template_name || record.шаблон || record.name || record.название || 'Шаблон'
+          break
+        case 'general_info':
+          title = record.clinic_name || record.клиника || record.name || record.название || 'Информация'
+          break
+        default:
+          // Ищем заголовок в различных полях
+          title = record.title || record.заголовок || record.name || record.название || 
+                 record.symptom || record.симптом || record.question || record.вопрос || 
+                 record.service || record.услуга || 'Без названия'
+      }
+      
+      // Если заголовок пустой или содержит только пробелы, используем код
+      if (!title || title.trim() === '' || title === 'Без названия') {
+        title = `${record.table || 'Unknown'} запись ${record.id || 'Unknown'}`
+      }
       
       console.log('🔍 AI Consultation: Формируем источник:', { 
         code, 
         tableName,
         title, 
+        table: record.table,
         availableFields: Object.keys(record)
       })
       return `${code} (${tableName}): ${title}`
