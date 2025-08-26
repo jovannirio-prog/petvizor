@@ -24,19 +24,12 @@ export async function sendEmailResend({ to, subject, html }: EmailData) {
     // Отправляем email
     console.log('📧 Resend Email: Отправляем email...')
     
-    // В тестовом режиме отправляем на адрес аккаунта
-    const testEmail = 'jovannirio@gmail.com'
-    const actualEmail = to
-    
-    console.log('📧 Resend Email: Тестовый режим - отправляем на:', testEmail)
-    console.log('📧 Resend Email: Реальный получатель:', actualEmail)
-    
-         const data = await resend.emails.send({
-       from: 'noreply@petvizor.com', // Используем ваш верифицированный домен
-       to: [to], // Отправляем на реальный адрес
-       subject: subject,
-       html: html,
-     })
+    const data = await resend.emails.send({
+      from: 'noreply@petvizor.com',
+      to: [to],
+      subject: subject,
+      html: html,
+    })
 
     console.log('📧 Resend Email: Ответ от Resend:', data)
     
