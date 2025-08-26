@@ -7,7 +7,55 @@ import { NextResponse } from 'next/server'
 const GOOGLE_SHEETS_API_KEY = process.env.GOOGLE_SHEETS_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const SPREADSHEET_ID = '1ejjF77KXW5KEbGOrYrwxOKUfNhJWqdgeNbD8MgG6XqQ'
-const SHEET_NAMES = ['KB_LeoVet1', 'base1', 'KB_LeoVet']
+
+// Конфигурация таблиц базы знаний
+const KNOWLEDGE_TABLES = {
+  general_info: {
+    name: 'Общая информация о клинике',
+    priority: 1,
+    description: 'Имя, контакты, стиль общения ИИ'
+  },
+  situations: {
+    name: 'База симптомов и рекомендаций',
+    priority: 2,
+    description: 'Ядро системы - основная база знаний'
+  },
+  animals_breeds: {
+    name: 'Виды и породы животных',
+    priority: 3,
+    description: 'Описания ключевых особенностей'
+  },
+  pricelist: {
+    name: 'Прайс-лист услуг',
+    priority: 4,
+    description: 'Структурированный прайс-лист'
+  },
+  medications: {
+    name: 'Справочник препаратов',
+    priority: 5,
+    description: 'Препараты и схемы применения'
+  },
+  preventive_care: {
+    name: 'Профилактический уход',
+    priority: 6,
+    description: 'Типовые регулярные процедуры'
+  },
+  faq: {
+    name: 'Часто задаваемые вопросы',
+    priority: 7,
+    description: 'FAQ для быстрых ответов'
+  },
+  response_template: {
+    name: 'Шаблоны ответов',
+    priority: 8,
+    description: 'Шаблоны для владельцев и администраторов'
+  },
+  intents: {
+    name: 'База намерений пользователей',
+    priority: 9,
+    description: 'Для улучшения точности ИИ'
+  }
+}
 
 // Кэш для базы знаний (обновляется каждые 5 минут)
 let knowledgeBaseCache: any[] = []
@@ -128,7 +176,7 @@ export async function POST(request: Request) {
       console.log('🔍 AI Consultation: Начинаем загрузку базы знаний...')
       console.log('🔍 AI Consultation: GOOGLE_SHEETS_API_KEY:', GOOGLE_SHEETS_API_KEY ? 'Настроен' : 'НЕ НАСТРОЕН')
       console.log('🔍 AI Consultation: SPREADSHEET_ID:', SPREADSHEET_ID)
-      console.log('🔍 AI Consultation: SHEET_NAMES:', SHEET_NAMES)
+      console.log('🔍 AI Consultation: Таблицы:', Object.keys(KNOWLEDGE_TABLES))
     
     // Временная база знаний (если Google Sheets недоступен)
     if (!GOOGLE_SHEETS_API_KEY) {
@@ -151,63 +199,86 @@ export async function POST(request: Request) {
         }
       ]
     } else if (GOOGLE_SHEETS_API_KEY) {
-      // Пробуем разные названия листов
-      let sheetFound = false
+      // Загружаем данные из всех таблиц параллельно
+      console.log('🔍 AI Consultation: Загружаем данные из 9 таблиц Google Sheets...')
       
-      for (const sheetName of SHEET_NAMES) {
-        if (sheetFound) break
-        
+      const tablePromises = Object.keys(KNOWLEDGE_TABLES).map(async (tableName) => {
         try {
-          const encodedSheetName = encodeURIComponent(sheetName)
-          const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodedSheetName}?key=${GOOGLE_SHEETS_API_KEY}`
-          console.log('🔍 AI Consultation: Пробуем лист:', sheetName)
-          console.log('🔍 AI Consultation: API URL:', apiUrl)
+          const range = `${tableName}!A:Z`
+          const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_SHEETS_API_KEY}`
           
-          const response = await fetch(apiUrl)
-          console.log('🔍 AI Consultation: Статус ответа Google Sheets для', sheetName, ':', response.status)
-        
-        if (response.ok) {
+          console.log(`🔍 AI Consultation: Загружаем таблицу ${tableName}...`)
+          
+          const response = await fetch(url)
+          
+          if (!response.ok) {
+            console.warn(`⚠️ AI Consultation: Не удалось загрузить таблицу ${tableName}:`, response.status)
+            return null
+          }
+
           const data = await response.json()
-          console.log('🔍 AI Consultation: Получены данные из Google Sheets')
-          console.log('🔍 AI Consultation: Количество строк в данных:', data.values ? data.values.length : 0)
           
-          if (data.values && data.values.length > 0) {
-            const headers = data.values[0]
-            const rows = data.values.slice(1)
+          if (!data.values || data.values.length === 0) {
+            console.warn(`⚠️ AI Consultation: Таблица ${tableName} пуста`)
+            return null
+          }
+
+          // Преобразуем данные в нужный формат
+          const headers = data.values[0]
+          const rows = data.values.slice(1)
+          
+          return rows.map((row: any[], index: number) => {
+            const record: any = {
+              id: index + 1,
+              code: `${tableName.toUpperCase()}_${index + 1}`,
+              table: tableName,
+              table_name: KNOWLEDGE_TABLES[tableName as keyof typeof KNOWLEDGE_TABLES]?.name || tableName
+            }
             
-            console.log('🔍 AI Consultation: Заголовки базы знаний:', headers)
-            console.log('🔍 AI Consultation: Количество записей:', rows.length)
-            
-            knowledgeBase = rows.map((row: any[]) => {
-              const item: any = {}
-              headers.forEach((header: string, index: number) => {
-                item[header] = row[index] || ''
-              })
-              return item
+            headers.forEach((header: string, colIndex: number) => {
+              if (row[colIndex]) {
+                const key = header.toLowerCase().replace(/\s+/g, '_')
+                record[key] = row[colIndex]
+              }
             })
             
-            console.log('🔍 AI Consultation: База знаний загружена, записей:', knowledgeBase.length)
-            if (knowledgeBase.length > 0) {
-              console.log('🔍 AI Consultation: Пример первой записи:', JSON.stringify(knowledgeBase[0], null, 2))
-            }
-            sheetFound = true
-            break
-          } else {
-            console.log('⚠️ AI Consultation: Данные из Google Sheets пусты для листа:', sheetName)
-          }
-        } else {
-          const errorText = await response.text().catch(() => 'Не удалось получить текст ошибки')
-          console.log('⚠️ AI Consultation: Ошибка получения данных из Google Sheets для', sheetName, ':', response.status, response.statusText)
-          console.log('⚠️ AI Consultation: Детали ошибки:', errorText)
-        }
+            return record
+          })
         } catch (error) {
-          console.error('⚠️ AI Consultation: Ошибка получения базы знаний для листа', sheetName, ':', error)
+          console.warn(`⚠️ AI Consultation: Ошибка загрузки таблицы ${tableName}:`, error)
+          return null
         }
-      }
+      })
       
-      if (!sheetFound) {
-        console.log('🔍 AI Consultation: Не удалось найти подходящий лист, переключаемся на временную базу знаний')
-      }
+      const tableResults = await Promise.allSettled(tablePromises)
+      
+      // Объединяем результаты
+      const allData: any[] = []
+      const tableStats: any = {}
+      
+      tableResults.forEach((result, index) => {
+        const tableName = Object.keys(KNOWLEDGE_TABLES)[index]
+        
+        if (result.status === 'fulfilled' && result.value) {
+          allData.push(...result.value)
+          tableStats[tableName] = result.value.length
+          console.log(`✅ AI Consultation: Таблица ${tableName} - ${result.value.length} записей`)
+        } else {
+          tableStats[tableName] = 0
+          console.warn(`⚠️ AI Consultation: Таблица ${tableName} - ошибка загрузки`)
+        }
+      })
+
+      // Сортируем по приоритету таблиц
+      allData.sort((a, b) => {
+        const priorityA = KNOWLEDGE_TABLES[a.table as keyof typeof KNOWLEDGE_TABLES]?.priority || 999
+        const priorityB = KNOWLEDGE_TABLES[b.table as keyof typeof KNOWLEDGE_TABLES]?.priority || 999
+        return priorityA - priorityB
+      })
+
+      knowledgeBase = allData
+      console.log(`✅ AI Consultation: Загружено ${allData.length} записей из ${Object.keys(tableStats).length} таблиц`)
+      console.log('📊 AI Consultation: Статистика по таблицам:', tableStats)
       
       // Обновляем кэш
       knowledgeBaseCache = knowledgeBase
@@ -242,17 +313,21 @@ export async function POST(request: Request) {
 
     // Формируем список кодов использованных записей с заголовками
     const usedRecordCodes = relevantKnowledge.map(record => {
-      const id = record.ID || 'Unknown'
-      // Проверяем разные варианты названия поля заголовка
-      const title = record['Заголовок'] || record.Заголовок || record.title || record.Title || 'Без названия'
+      const code = record.code || 'Unknown'
+      const tableName = record.table_name || record.table || 'Unknown'
+      
+      // Ищем заголовок в различных полях
+      const title = record.title || record.заголовок || record.name || record.название || 
+                   record.symptom || record.симптом || record.question || record.вопрос || 
+                   record.service || record.услуга || 'Без названия'
+      
       console.log('🔍 AI Consultation: Формируем источник:', { 
-        id, 
+        code, 
+        tableName,
         title, 
-        availableFields: Object.keys(record),
-        заголовок: record.Заголовок,
-        'Заголовок': record['Заголовок']
+        availableFields: Object.keys(record)
       })
-      return `${id}: ${title}`
+      return `${code} (${tableName}): ${title}`
     }).join('\n')
     
     console.log('🔍 AI Consultation: Сформированные источники:', usedRecordCodes)
