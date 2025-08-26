@@ -13,22 +13,27 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 -- Вариант 2: Если таблица существует, добавляем недостающие колонки
-DO $$ 
+-- Добавляем session_id если его нет
+DO $$
 BEGIN
-  -- Добавляем session_id если его нет
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'chat_messages' 
     AND column_name = 'session_id'
   ) THEN
     ALTER TABLE chat_messages ADD COLUMN session_id TEXT;
-    -- Заполняем существующие записи значением по умолчанию
-    UPDATE chat_messages SET session_id = 'legacy-session-' || id::text WHERE session_id IS NULL;
-    -- Делаем колонку NOT NULL
-    ALTER TABLE chat_messages ALTER COLUMN session_id SET NOT NULL;
   END IF;
-  
-  -- Добавляем updated_at если его нет
+END $$;
+
+-- Заполняем существующие записи значением по умолчанию для session_id
+UPDATE chat_messages SET session_id = 'legacy-session-' || id::text WHERE session_id IS NULL;
+
+-- Делаем колонку session_id NOT NULL
+ALTER TABLE chat_messages ALTER COLUMN session_id SET NOT NULL;
+
+-- Добавляем updated_at если его нет
+DO $$
+BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'chat_messages' 
@@ -36,22 +41,24 @@ BEGIN
   ) THEN
     ALTER TABLE chat_messages ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
   END IF;
-  
-  -- Добавляем триггер для updated_at если его нет
+END $$;
+
+-- Создаем функцию для триггера updated_at
+CREATE OR REPLACE FUNCTION update_chat_messages_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Добавляем триггер для updated_at если его нет
+DO $$
+BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.triggers 
     WHERE trigger_name = 'trigger_update_chat_messages_updated_at'
   ) THEN
-    -- Создаем функцию если её нет
-    CREATE OR REPLACE FUNCTION update_chat_messages_updated_at()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      NEW.updated_at = NOW();
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-    
-    -- Создаем триггер
     CREATE TRIGGER trigger_update_chat_messages_updated_at
       BEFORE UPDATE ON chat_messages
       FOR EACH ROW
